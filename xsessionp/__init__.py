@@ -6,4 +6,4 @@ from .muffin import *
 from .xsession import *
 from .xsessionp import *
 
-__version__ = "0.1.0.dev0"
+__version__ = "0.1.0"
