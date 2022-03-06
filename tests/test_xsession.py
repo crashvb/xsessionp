@@ -40,6 +40,9 @@ def test___init__(xsession: XSession):
     assert xsession
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test___getattr____setattr__(xsession: XSession):
     """Tests __getattr__ and __setattr__ methods."""
     desktop_count = xsession._NET_NUMBER_OF_DESKTOPS.value[0]
@@ -64,6 +67,10 @@ def test___getattr____setattr__(xsession: XSession):
     set_desktop(desktop=desktop_original)
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_NUMBER_OF_DESKTOPS",
+)
 def test_get_atom(xsession: XSession):
     """Tests that atom values can be retrieved."""
     assert xsession.get_atom(name=NET_NUMBER_OF_DESKTOPS) == 526
@@ -73,6 +80,7 @@ def test_get_atom(xsession: XSession):
     assert xsession.get_atom(check=False, name=bad_value) == NONE
 
 
+@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 def test_get_atom_name(xsession: XSession):
     """Tests atom names can be retrieved."""
     assert xsession.get_atom_name(atom=526) == NET_NUMBER_OF_DESKTOPS
@@ -82,6 +90,9 @@ def test_get_atom_name(xsession: XSession):
     assert xsession.get_atom_name(atom=bad_value, check=False) is None
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_client_list(xsession: XSession):
     """Tests that the list of managed windows can be retrieved."""
 
@@ -91,6 +102,9 @@ def test_get_client_list(xsession: XSession):
         assert len(client_list)
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_client_list_stacking(xsession: XSession):
     """Tests that the (stacked) list of managed windows can be retrieved."""
 
@@ -100,7 +114,9 @@ def test_get_client_list_stacking(xsession: XSession):
         assert len(client_list_stack)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_active(xsession: XSession):
     """Tests that the active desktop can be retrieved."""
     desktop = xsession.get_desktop_active()
@@ -108,7 +124,9 @@ def test_get_desktop_active(xsession: XSession):
     assert desktop is not None
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_count(xsession: XSession):
     """Tests that the number of desktops can be retrieved."""
     count = xsession.get_desktop_count()
@@ -116,6 +134,9 @@ def test_get_desktop_count(xsession: XSession):
     assert count is not None
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_geometry(xsession: XSession):
     """Tests that the dimensions of the desktops can be retrieved."""
     geometry = xsession.get_desktop_geometry()
@@ -125,6 +146,9 @@ def test_get_desktop_geometry(xsession: XSession):
     assert geometry[1]
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_layout(xsession: XSession):
     """Tests that the layout of the desktops can be retrieved."""
     layout = xsession.get_desktop_layout()
@@ -133,6 +157,9 @@ def test_get_desktop_layout(xsession: XSession):
     assert layout[1] + layout[2]  # Should be at least 1 column or 1 row
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_names(xsession: XSession):
     """Tests that the names of the desktops can be retrieved."""
     count = xsession.get_desktop_count()
@@ -143,7 +170,9 @@ def test_get_desktop_names(xsession: XSession):
     assert names[count - 1]
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be retrieved."""
     showing = xsession.get_desktop_showing()
@@ -151,6 +180,9 @@ def test_get_desktop_showing(xsession: XSession):
     assert showing is not None
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_desktop_viewport(xsession: XSession):
     """Tests that the viewports of the desktops can be retrieved."""
     viewport = xsession.get_desktop_viewport()
@@ -188,7 +220,9 @@ def test_get_uptime():
     assert time1 != time0
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_get_window_active(xsession: XSession):
     """Tests that the active window can be retrieved."""
     window = xsession.get_window_active()
@@ -196,6 +230,10 @@ def test_get_window_active(xsession: XSession):
     assert isinstance(window, Window)
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_ALLOWED_ACTIONS",
+)
 @pytest.mark.xclock
 def test_get_window_allowed_actions(window_id: int, xsession: XSession):
     """Tests that the allowed actions can be retrieved for a window."""
@@ -212,7 +250,10 @@ def test_get_window_by_id(window_id: int, xsession: XSession):
     assert isinstance(window, Window)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_DESKTOP",
+)
 @pytest.mark.xclock
 def test_get_window_desktop(window_id: int, xsession: XSession):
     """Tests that desktop assigned to a window can be retrieved."""
@@ -231,6 +272,7 @@ def test_get_window_dimensions(window_id: int, xsession: XSession):
     assert dimensions[1] > 0
 
 
+@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 def test_get_window_focus(xsession: XSession):
     """Tests that currently focused window can be retrieved."""
     window = xsession.get_window_focus()
@@ -244,6 +286,7 @@ def test_get_window_focus(xsession: XSession):
     LOGGER.debug("Focused window: %d", xsession._get_window_id(window=window))
 
 
+@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 def test_get_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that the frame extents of a window can be retrieved."""
     frame_extents = xsession.get_window_frame_extents(window=window_id)
@@ -251,7 +294,10 @@ def test_get_window_frame_extents(window_id: int, xsession: XSession):
     assert len(frame_extents) == 4
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_SUPPORTING_WM_CHECK",
+)
 def test_get_window_manager(xsession: XSession):
     """Tests that the window manager can be retrieved."""
     window = xsession.get_window_manager()
@@ -288,6 +334,10 @@ def test_get_window_root(xsession: XSession):
     assert xsession.get_window_root()
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_FULLSCREEN",
+)
 @pytest.mark.xclock
 def test_get_window_state(window_id: int, xsession: XSession):
     """Tests that the state can be retrieved for a window."""
@@ -319,6 +369,9 @@ def test_get_window_visible_name(window_id: int, xsession: XSession):
     assert xsession.get_window_visible_name(window=window_id) == "xclock"
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_WORKAREA"
+)
 def test_get_workarea(xsession: XSession):
     """Tests that the workarea can be retrieved."""
     workarea = xsession.get_workarea()
@@ -328,6 +381,10 @@ def test_get_workarea(xsession: XSession):
         assert len(lst) == 4
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_VIRTUAL_ROOTS",
+)
 def test_get_virtual_roots(xsession: XSession):
     """Tests that the list of virtual can be retrieved."""
     virtual_roots = xsession.get_virtual_roots()
@@ -357,7 +414,9 @@ def test_search(window_id: int, xsession: XSession):
     # assert len(windows) == 5
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_set_desktop_active(xsession: XSession):
     """Tests that the active desktop can be assigned."""
 
@@ -459,7 +518,9 @@ def test_set_desktop_layout(xsession: XSession):
     )
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 def test_set_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be assigned."""
 
@@ -479,7 +540,10 @@ def test_set_desktop_showing(xsession: XSession):
     set_showing(showing=showing_original)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
+)
 @pytest.mark.xclock
 def test_set_window_active(xsession: XSession):
     """Tests that a window can be activated."""
@@ -518,6 +582,10 @@ def test_set_window_active(xsession: XSession):
         kill_all_xclock_instances()
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_CLOSE_WINDOW",
+)
 @pytest.mark.xclock
 def test_set_window_close(window_id: int, xsession: XSession):
     """Tests that a window can be closed."""
@@ -527,7 +595,9 @@ def test_set_window_close(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
 @pytest.mark.xclock
 def test_set_window_desktop(window_id: int, xsession: XSession):
     """Tests that a desktop can be assigned to a window."""
@@ -573,7 +643,7 @@ def test_set_window_dimensions(window_id: int, xsession: XSession):
     assert xsession.get_window_dimensions(window=window_id) == dimensions1
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.skip("Test scenario refinement needed.")
 @pytest.mark.xclock
 def test_set_window_focus(xsession: XSession):
     """Tests that a window can be focused."""
@@ -612,6 +682,7 @@ def test_set_window_focus(xsession: XSession):
         kill_all_xclock_instances()
 
 
+@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 @pytest.mark.xclock
 def test_set_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that frame extents can be assigned to a window."""
@@ -659,6 +730,10 @@ def test_set_window_position(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) != position0
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_FULLSCREEN",
+)
 @pytest.mark.xclock
 def test_set_window_state(window_id: int, xsession: XSession):
     """Tests that a state can be assigned to a given window."""
@@ -722,6 +797,10 @@ def test_window_kill(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_MAXIMIZED_HORZ",
+)
 @pytest.mark.xclock
 def test_window_maximize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
@@ -774,6 +853,10 @@ def test_window_maximize(window_id: int, xsession: XSession):
     assert vertical not in state
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_HIDDEN",
+)
 @pytest.mark.xclock
 def test_window_minimize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
@@ -794,6 +877,10 @@ def test_window_minimize(window_id: int, xsession: XSession):
     assert hidden not in state
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_MOVERESIZE_WINDOW",
+)
 @pytest.mark.xclock
 def test_window_moveresize(window_id: int, xsession: XSession):
     """Tests that a window can be moved and resized."""
@@ -828,7 +915,7 @@ def test_window_moveresize(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) == position1
 
 
-@pytest.mark.skip("The whole point is to be interactive.")
+@pytest.mark.skip("The whole point of pytest is to be non-interactive.")
 def test_window_select(xsession: XSession):
     """Tests that a window can be graphically selected."""
     assert xsession.window_select()
@@ -859,41 +946,7 @@ def test_window_map_unmap(window_id: int, xsession: XSession):
     assert get_window_attributes.map_state == IsViewable
 
 
-# #@pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
-# @pytest.mark.xclock
-# def test_windowraise(xsession: XSession):
-#     """Tests that a window can be raised."""
-#     try:
-#
-#         def make_raised(*, window_id: int):
-#             windowraise(window_id=window_id)
-#             assert getwindowfocus() == window_id
-#
-#         window_metadata0 = launch_command(args=["xclock"])
-#         window_id0 = guess_window(
-#             title_hint="^xclock$", window_metadata=window_metadata0
-#         )
-#         assert window_id0
-#
-#         # After the next command window_id0 will be focused, but was it before (by default)?
-#         make_raised(window_id=window_id0)
-#
-#         window_metadata1 = launch_command(args=["xclock"])
-#         window_id1 = guess_window(
-#             title_hint="^xclock$", window_metadata=window_metadata1
-#         )
-#         assert window_id1
-#
-#         # After the next command window_id1 will be focused, but was it before (by default)?
-#         make_raised(window_id=window_id1)
-#
-#         # Since no new windows were opened, we can be confident that it's xdotool changing focus,
-#         # and not the display manager ...
-#         make_raised(window_id=window_id0)
-#
-#         # One more time, for good measure ...
-#         make_raised(window_id=window_id1)
-#     finally:
-#         kill_all_xclock_instances()
+# TODO: def test_windowraise(xsession: XSession):
+
 
 # TODO: def test_windowreparent(xsession: XSession):

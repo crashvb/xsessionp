@@ -352,15 +352,15 @@ class Muffin(XSession):
             return
 
         if tile_method == TileMethod.KEYBOARD:
-            return self._window_tile_keyboard(
+            self._window_tile_keyboard(
                 check=check, tile_mode=tile_mode, tile_type=tile_type, window=window
             )
         elif tile_method == TileMethod.MOVERESIZE:
-            return self._window_tile_moveresize(
+            self._window_tile_moveresize(
                 check=check, tile_mode=tile_mode, tile_type=tile_type, window=window
             )
         elif tile_method == TileMethod.WMSTATE:
-            return self._window_tile_wmstate(
+            self._window_tile_wmstate(
                 check=check, tile_mode=tile_mode, tile_type=tile_type, window=window
             )
         else:

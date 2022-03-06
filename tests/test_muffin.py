@@ -5,10 +5,11 @@
 """muffin tests."""
 
 import logging
+import os
 
 import pytest
 
-from xsessionp import Muffin, TileMethod, TileMode, TileType
+from xsessionp import Muffin, TileMode, TileType
 
 from .testutils import allow_xserver_to_sync
 
@@ -21,6 +22,10 @@ def test___init__(muffin: Muffin):
     assert muffin
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_WM_WINDOW_TILE_INFO",
+)
 @pytest.mark.xclock
 def test_get_set_window_tile_info(window_id: int, muffin: Muffin):
     """Tests that tile information can be retrieved / assigned to a window."""
@@ -48,8 +53,13 @@ def test_get_set_window_tile_info(window_id: int, muffin: Muffin):
     assert tile_info1 != tile_info0
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
+)
 @pytest.mark.xclock
 def test_window_tile(window_id: int, muffin: Muffin):
+    # pylint: disable=too-many-locals,too-many-statements
     """Tests that a window can be tiled."""
 
     # TODO: Why is set_window_focus() in _send_Keys failing sometimes?

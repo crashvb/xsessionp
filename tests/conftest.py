@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# pylint: disable=redefined-outer-name
+
 """Configures execution of pytest."""
 
 import pytest

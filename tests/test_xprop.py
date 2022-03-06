@@ -8,7 +8,7 @@ import logging
 
 import pytest
 
-from xsessionp import (
+from xsessionp.xprop import (
     get_xproperties,
     get_xproperty,
     get_root_xproperties,
@@ -248,5 +248,5 @@ def test_set_xproperty(window_id: int):
 
 
 def test_xprop():
-    """Tests that the current desktop can be retrieved."""
-    assert xprop("-version")
+    """Tests that the root properties can be retrieved."""
+    assert xprop("-root")

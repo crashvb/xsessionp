@@ -70,7 +70,7 @@ class TypingWindowMetadata(NamedTuple):
 
 
 def do_load(*, path: Path, verbosity: int, xsession: XSession):
-    # pylint: disable=too-many-branches
+    # pylint: disable=too-many-branches,too-many-locals,too-many-statements
     """
     Loads a given xsessionp configuration file.
 
@@ -248,12 +248,15 @@ def guess_window(
         if sane:
             # First try going up ...
             matches = xsession._traverse_parents(
-                matcher=must_have_state, max_results=1, window=windows[0]
+                check=False, matcher=must_have_state, max_results=1, window=windows[0]
             )
             # ... then try going down ...
             if not matches:
                 matches = xsession._traverse_children(
-                    matcher=must_have_state, max_results=1, window=windows[0]
+                    check=False,
+                    matcher=must_have_state,
+                    max_results=1,
+                    window=windows[0],
                 )
         return matches[0].id if matches else windows[0].id
 
@@ -271,15 +274,15 @@ def guess_window(
 
     if not guesses:
         LOGGER.warning("No matching titles; try relaxing 'title_hint'!")
-        return
-    elif len(guesses) == 1:
+        return None
+    if len(guesses) == 1:
         LOGGER.debug("Found matching title: %s", guesses[0].name)
         return guesses[0].id
-    else:
-        LOGGER.warning(
-            "Too many matching titles: %d; try constraining 'title_hint'!", len(guesses)
-        )
-        # ... it should still be better to use things with titles ...
+
+    LOGGER.warning(
+        "Too many matching titles: %d; try constraining 'title_hint'!", len(guesses)
+    )
+    # ... it should still be better to use things with titles ...
 
     LOGGER.debug("Best effort at an ID-based match ...")
     # The greater the id, the later the window was created?!? ¯\_(ツ)_/¯

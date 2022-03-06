@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# pylint: disable=too-many-lines
+
 """
 A shameless, low quality, adaptation of select portions of tools to python:
 
@@ -18,7 +20,7 @@ from typing import Any, Callable, Generator, List, NamedTuple, Optional, Union
 from Xlib.display import Display
 from Xlib.error import BadAtom, BadWindow, CatchError, XError
 from Xlib.ext.xtest import fake_input
-from Xlib.protocol.event import ClientMessage, KeyPress, KeyRelease
+from Xlib.protocol.event import ClientMessage
 from Xlib.protocol.request import GetProperty, GetGeometry
 from Xlib.protocol.rq import DictWrapper, Event
 from Xlib.xobject.cursor import Cursor
@@ -31,10 +33,6 @@ from Xlib.X import (
     GrabModeAsync,
     GrabModeSync,
     GrabSuccess,
-    KeyPress as KeyPressType,
-    KeyPressMask,
-    KeyRelease as KeyReleaseType,
-    KeyReleaseMask,
     NONE,
     PropModeReplace,
     RevertToParent,
@@ -60,26 +58,6 @@ def get_uptime() -> int:
     return round(perf_counter() * 1000)
 
 
-# def xproperty(
-#     *,
-#     atom: Union[int, str],
-#     check: bool = None,
-#     property_type: int = AnyPropertyType,
-#     window: Union[int, Window] = None,
-# ):
-#     def xproperty_decorator(func):
-#         @wraps(func)
-#         def wrapper(*args, **kwargs):
-#             kwargs["get_property"] = self._get_property(
-#                 atom=atom, check=check, property_type=property_type, window=window
-#             )
-#             return func(*args, **kwargs)
-#
-#         return wrapper
-#
-#     return xproperty_decorator
-
-
 class TypingKeyInput(NamedTuple):
     # pylint: disable=missing-class-docstring
     event_type: int
@@ -91,6 +69,7 @@ class TypingKeyInput(NamedTuple):
 
 
 class XSession:
+    # pylint: disable=too-many-public-methods
     """Interacts with X11 window managers."""
 
     # TODO: getattr and setattr are asymmetric, as getattr returns GetProperty, while setattr accepts the plan value.
@@ -409,7 +388,7 @@ class XSession:
         """Retrieves the integer value corresponding to an atom by a given string name."""
         atom = self.get_display().intern_atom(name=name, only_if_exists=True)
         if self._get_check(check=check) and atom == NONE:
-            raise RuntimeError("Unable to intern atom: %s", name)
+            raise RuntimeError(f"Unable to intern atom: {name}")
         return atom
 
     @lru_cache(maxsize=None, typed=True)
@@ -582,27 +561,6 @@ class XSession:
         )
         return list(get_property.value) if get_property else None
 
-    # def get_window_position(self, *, absolute: bool = True, check: bool = None, window: Union[int, Window]) -> Optional[List[int]]:
-    #     """Retrieves the coordinates of a given window."""
-    #     # xdotool: "The coordinates in attr are relative to the parent window.  If the parent window is the root window,
-    #     #           then the coordinates are correct.  If the parent window isn't the root window --- which is likely ---
-    #     #           then we translate them."
-    #     check = self._get_check(check=check)
-    #     window = get_window(check=check, window_id=window)
-    #     try:
-    #         get_geometry = self._get_window_geometry(check=check, window=window)
-    #         window_root = self.get_window_root()
-    #         if window.query_tree().parent == window_root:
-    #             return [get_geometry.x, get_geometry.y]
-    #         else:
-    #             coordinates = window.translate_coords(src_window=window_root, src_x=get_geometry.x, src_y=get_geometry.y)
-    #             return [coordinates.x, coordinates.y]
-    #     except XError as exception:
-    #         LOGGER.error("Unable to retrieve position of window %d: %s", self._get_window_id(window), exception)
-    #         if check:
-    #             raise
-    #     return None
-
     def get_window_position(
         self, *, absolute: bool = True, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
@@ -731,16 +689,19 @@ class XSession:
         )
 
     def set_desktop_active(self, *, desktop: int):
+        # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the active desktop."""
         LOGGER.debug("Assigning current desktop to: %d", desktop)
         self._NET_CURRENT_DESKTOP = [desktop, get_uptime()]
 
     def set_desktop_count(self, *, count: int):
+        # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the number of desktops."""
         LOGGER.debug("Assigning number of desktops to: %d", count)
         self._NET_NUMBER_OF_DESKTOPS = [count]
 
     def set_desktop_geometry(self, *, height: int, width: int):
+        # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the dimensions of the desktops."""
         LOGGER.debug("Assigning desktop geometry to : %dx%d", width, height)
         self._NET_DESKTOP_GEOMETRY = [width, height]
@@ -748,6 +709,7 @@ class XSession:
     def set_desktop_layout(
         self, *, columns: int, orientation: int, rows: int, starting_corner: int
     ):
+        # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the dimensions of the desktops."""
         LOGGER.debug(
             "Assigning desktop layout to : %d %d %d %d",
@@ -761,6 +723,7 @@ class XSession:
     # TODO: def set_desktop_names(...)
 
     def set_desktop_showing(self, *, showing: int):
+        # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the showing desktop flag."""
         LOGGER.debug("Assigning desktop showing to : %d", showing)
         self._NET_SHOWING_DESKTOP = [showing]
@@ -987,6 +950,7 @@ class XSession:
             state0=flags[0],
             **state1,
             window=window,
+            **kwargs,
         )
 
     def window_minimize(
@@ -1032,6 +996,7 @@ class XSession:
         window: Union[int, Window],
         **kwargs,
     ):
+        # pylint: disable=line-too-long
         """
         Moves and / or resizes a given window.
         https://tronche.com/gui/x/xlib/window/attributes/gravity.html
@@ -1075,18 +1040,13 @@ class XSession:
     def window_select(
         self, *, check: bool = None, delay: int = 1, retry: int = 3
     ) -> Optional[Window]:
+        # pylint: disable=too-many-branches
         """
         Graphically selects window (interactive via UI).
         https://github.com/jordansissel/xdotool/blob/735e301665e7f9b8fe850588e88a3a0973695eec/xdo.c#L735
         """
         display = self.get_display()
         window_root = self.get_window_root()
-
-        # Note: The root window from XQueryPoint is not the same as the root window from self.get_window_root()
-        # query_pointer = window_root.query_pointer()
-        # <QueryPointer serial = 17, data = {'same_screen': 1, 'sequence_number': 17, 'root': <Window 0x00000265>,
-        # 'child': <Window 0x0300c843>, 'root_x': 3283, 'root_y': 162, 'win_x': 3283, 'win_y': 162, 'mask': 16},
-        # error = None>
 
         font = display.open_font("cursor")  # type: Font
         LOGGER.debug("Retrieved font: %s", font.id)

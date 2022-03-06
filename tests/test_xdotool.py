@@ -13,7 +13,8 @@ from time import sleep
 
 import pytest
 
-from xsessionp import (
+from xsessionp import guess_window, launch_command, XSession
+from xsessionp.xdotool import (
     get_desktop,
     get_desktop_for_window,
     get_num_desktops,
@@ -23,8 +24,6 @@ from xsessionp import (
     getwindowgeometry,
     getwindowname,
     getwindowpid,
-    guess_window,
-    launch_command,
     search,
     set_desktop_for_window,
     windowactivate,
@@ -37,7 +36,6 @@ from xsessionp import (
     windowsize,
     windowraise,
     windowunmap,
-    XSession,
 )
 
 from .testutils import kill_all_xclock_instances, QUASI_DETERMINISTIC_DELAY
