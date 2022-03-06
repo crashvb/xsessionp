@@ -1,0 +1,14 @@
+before_install:
+  - sudo apt-get --yes install x11-apps xsession
+env:
+- TRAVIS=true
+install:
+- python -m pip install --upgrade pip
+- python -m pip install --editable .[dev]
+language: python
+python:
+- "3.8.3"
+script:
+- make test-all
+services:
+- xvfb
