@@ -1,5 +1,5 @@
 before_install:
-  - sudo apt-get --yes install x11-apps xsession
+  - sudo apt-get --yes install x11-apps xdotool
 env:
 - TRAVIS=true
 install:
