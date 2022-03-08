@@ -41,7 +41,7 @@ from Xlib.X import (
     SubstructureRedirectMask,
     SyncPointer,
 )
-from Xlib.Xatom import ATOM, CARDINAL
+from Xlib.Xatom import ATOM, CARDINAL, STRING
 from Xlib.Xcursorfont import crosshair as xcf_crosshair
 from Xlib.XK import string_to_keysym
 from Xlib.Xutil import IconicState
@@ -115,7 +115,8 @@ class XSession:
         window = self._get_window(check=check, window=window)
 
         if not data_format:
-            if isinstance(data, str):
+            if property_type == STRING:
+                data = data.encode("latin-1")
                 data_format = 8
             else:
                 data_format = 32
@@ -145,9 +146,7 @@ class XSession:
 
     def _get_check(self, *, check: bool) -> bool:
         """Retrieves the propagated value of the check parameter."""
-        if check is None:
-            check = self.check
-        return check
+        return self.check if check is None else check
 
     def _get_supported_atom(self, atom: Union[int, str]) -> int:
         """Retrieves a supported atom or raises an exception."""
@@ -289,6 +288,7 @@ class XSession:
 
         if not data_format:
             if isinstance(data, str):
+                data = list(data)
                 data_format = 8
             else:
                 data = (data + [0] * (5 - len(data)))[:5]
@@ -384,9 +384,11 @@ class XSession:
             self.get_display().sync()
 
     @lru_cache(maxsize=None, typed=True)
-    def get_atom(self, *, name: str, check: bool = None) -> int:
+    def get_atom(
+        self, *, name: str, check: bool = None, only_if_exists: bool = True
+    ) -> int:
         """Retrieves the integer value corresponding to an atom by a given string name."""
-        atom = self.get_display().intern_atom(name=name, only_if_exists=True)
+        atom = self.get_display().intern_atom(name=name, only_if_exists=only_if_exists)
         if self._get_check(check=check) and atom == NONE:
             raise RuntimeError(f"Unable to intern atom: {name}")
         return atom
@@ -1003,7 +1005,7 @@ class XSession:
         """
         LOGGER.debug(
             "Moving and resizing window %d to: %s,%s %sx%s %d",
-            window,
+            self._get_window_id(window=window),
             position_x,
             position_y,
             width,

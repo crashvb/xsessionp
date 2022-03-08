@@ -10,7 +10,7 @@ from shutil import rmtree
 
 from _pytest.tmpdir import TempPathFactory
 
-from xsessionp import run
+from xsessionp.utils import run
 
 LOGGER = logging.getLogger(__name__)
 

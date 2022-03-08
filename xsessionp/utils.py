@@ -6,13 +6,30 @@ import logging
 import subprocess
 import sys
 
+from logging import Formatter
 from pathlib import Path
-from typing import Union
+from re import compile, Pattern, sub
+from typing import List, Union
 
 import click
 import pkg_resources
 
 LOGGING_DEFAULT = 2
+
+
+class CustomFormatter(Formatter):
+    # pylint: disable=too-few-public-methods
+    """Allows for ANSI coloring of logs."""
+    COLORS = {
+        logging.DEBUG: "[38;20m",
+        logging.INFO: "[34;20m",
+        logging.WARNING: "[33;20m",
+        logging.ERROR: "[31;20m",
+        logging.CRITICAL: "[31;1m",
+    }
+
+    def format(self, record):
+        return f"\x1b{CustomFormatter.COLORS[record.levelno]}{super().format(record=record)}\x1b[0m"
 
 
 def get_path(path: Union[Path, str], name: str = __name__) -> Path:
@@ -105,3 +122,29 @@ def set_log_levels(verbosity: int = LOGGING_DEFAULT):
         format=_format,
         datefmt="%Y-%m-%d %H:%M:%S",
     )
+
+    # No need to loop over handlers or perform None checks as we know from basicConfig() there is only one, and it has
+    # a formatter assigned.
+    handler = logging.getLogger().handlers[0]
+    handler.formatter = CustomFormatter(fmt=handler.formatter._fmt)
+
+
+def to_list_int(context, param, value: str) -> List[int]:
+    # pylint: disable=unused-argument
+    """Constructs a list of integers from a comma-separated string."""
+    result = []
+    for v in value:
+        v = sub(pattern=r"[^0-9,-]", repl="", string=v)
+        for i in list(filter(lambda x: len(x), v.split(","))):
+            if "-" in i:
+                bound_lower, bound_upper = map(int, i.split("-"))
+                result.extend(range(bound_lower, bound_upper + 1))
+            else:
+                result.append(int(i))
+    return sorted(list(set(result)), key=int)
+
+
+def to_pattern(context, param, value: str) -> List[Pattern]:
+    # pylint: disable=unused-argument
+    """Compiles a regular expression pattern from a string."""
+    return [compile(pattern=v) for v in value]

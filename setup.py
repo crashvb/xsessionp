@@ -30,7 +30,7 @@ setup(
     description="A declarative window instantiation utility for x11 sessions, heavily inspired by tmuxp.",
     entry_points="""
         [console_scripts]
-        xsessionp=xsessionp.xsessionp:cli
+        xsessionp=xsessionp.cli:cli
     """,
     extras_require={
         "dev": [

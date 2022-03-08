@@ -13,7 +13,7 @@ from time import sleep
 
 import pytest
 
-from xsessionp import guess_window, launch_command, XSession
+from xsessionp import XSessionp
 from xsessionp.xdotool import (
     get_desktop,
     get_desktop_for_window,
@@ -155,7 +155,7 @@ def test_set_desktop_for_window(window_id: int):
 
 @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.xclock
-def test_windowactivate(xsession: XSession):
+def test_windowactivate(xsessionp: XSessionp):
     """Tests that a window can be activated."""
     try:
 
@@ -163,18 +163,18 @@ def test_windowactivate(xsession: XSession):
             windowactivate(sync=True, window_id=window_id)
             assert getactivewindow() == window_id
 
-        window_metadata0 = launch_command(args=["xclock"], xsession=xsession)
-        window_id0 = guess_window(
-            title_hint="^xclock$", windows=window_metadata0, xsession=xsession
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be active, but was it before (by default)?
         make_active(window_id=window_id0)
 
-        window_metadata1 = launch_command(args=["xclock"], xsession=xsession)
-        window_id1 = guess_window(
-            title_hint="^xclock$", windows=window_metadata1, xsession=xsession
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
         )
         assert window_id1
 
@@ -202,7 +202,7 @@ def test_windowclose(window_id: int):
 
 # @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.xclock
-def test_windowfocus(xsession: XSession):
+def test_windowfocus(xsessionp: XSessionp):
     """Tests that a window can be focused."""
     try:
 
@@ -210,18 +210,18 @@ def test_windowfocus(xsession: XSession):
             windowfocus(sync=True, window_id=window_id)
             assert getwindowfocus() == window_id
 
-        window_metadata0 = launch_command(args=["xclock"], xsession=xsession)
-        window_id0 = guess_window(
-            title_hint="^xclock$", windows=window_metadata0, xsession=xsession
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be active, but was it before (by default)?
         make_focused(window_id=window_id0)
 
-        window_metadata1 = launch_command(args=["xclock"], xsession=xsession)
-        window_id1 = guess_window(
-            title_hint="^xclock$", windows=window_metadata1, xsession=xsession
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
         )
         assert window_id1
 
@@ -310,7 +310,7 @@ def test_windowmove(window_id: int):
 @pytest.mark.skip("Test scenario refinement needed.")
 # @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.xclock
-def test_windowraise(xsession: XSession):
+def test_windowraise(xsessionp: XSessionp):
     """Tests that a window can be raised."""
     try:
 
@@ -320,18 +320,18 @@ def test_windowraise(xsession: XSession):
             #       Is it focused, active, or what?
             # assert getwindowfocus() == window_id
 
-        window_metadata0 = launch_command(args=["xclock"], xsession=xsession)
-        window_id0 = guess_window(
-            title_hint="^xclock$", windows=window_metadata0, xsession=xsession
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be focused, but was it before (by default)?
         make_raised(window_id=window_id0)
 
-        window_metadata1 = launch_command(args=["xclock"], xsession=xsession)
-        window_id1 = guess_window(
-            title_hint="^xclock$", windows=window_metadata1, xsession=xsession
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
         )
         assert window_id1
 

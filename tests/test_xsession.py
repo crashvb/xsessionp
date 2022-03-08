@@ -20,13 +20,12 @@ from xsessionp import (
     ACTION_REMOVE,
     ACTION_TOGGLE,
     get_uptime,
-    guess_window,
-    launch_command,
     NET_NUMBER_OF_DESKTOPS,
     NET_WM_STATE_HIDDEN,
     NET_WM_STATE_MAXIMIZED_HORZ,
     NET_WM_STATE_MAXIMIZED_VERT,
     XSession,
+    XSessionp,
 )
 
 from .testutils import allow_xserver_to_sync, kill_all_xclock_instances
@@ -545,27 +544,27 @@ def test_set_desktop_showing(xsession: XSession):
     reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
 )
 @pytest.mark.xclock
-def test_set_window_active(xsession: XSession):
+def test_set_window_active(xsessionp: XSessionp):
     """Tests that a window can be activated."""
     try:
 
         def set_active(*, window: int):
-            xsession.set_window_active(window=window)
+            xsessionp.set_window_active(window=window)
             allow_xserver_to_sync()
-            assert xsession.get_window_active().id == window
+            assert xsessionp.get_window_active().id == window
 
-        window_metadata0 = launch_command(args=["xclock"], xsession=xsession)
-        window_id0 = guess_window(
-            title_hint="^xclock$", windows=window_metadata0, xsession=xsession
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be active, but was it before (by default)?
         set_active(window=window_id0)
 
-        window_metadata1 = launch_command(args=["xclock"], xsession=xsession)
-        window_id1 = guess_window(
-            title_hint="^xclock$", windows=window_metadata1, xsession=xsession
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
         )
         assert window_id1
 
@@ -645,27 +644,27 @@ def test_set_window_dimensions(window_id: int, xsession: XSession):
 
 @pytest.mark.skip("Test scenario refinement needed.")
 @pytest.mark.xclock
-def test_set_window_focus(xsession: XSession):
+def test_set_window_focus(xsessionp: XSessionp):
     """Tests that a window can be focused."""
     try:
 
         def make_focused(*, window_id: int):
-            xsession.set_window_focus(window=window_id)
+            xsessionp.set_window_focus(window=window_id)
             allow_xserver_to_sync()
-            assert xsession.get_window_focus().id == window_id
+            assert xsessionp.get_window_focus().id == window_id
 
-        window_metadata0 = launch_command(args=["xclock"], xsession=xsession)
-        window_id0 = guess_window(
-            title_hint="^xclock$", windows=window_metadata0, xsession=xsession
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be focused, but was it before (by default)?
         make_focused(window_id=window_id0)
 
-        window_metadata1 = launch_command(args=["xclock"], xsession=xsession)
-        window_id1 = guess_window(
-            title_hint="^xclock$", windows=window_metadata1, xsession=xsession
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
         )
         assert window_id1
 

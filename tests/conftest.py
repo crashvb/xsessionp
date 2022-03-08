@@ -6,7 +6,7 @@
 
 import pytest
 
-from xsessionp import guess_window, launch_command, Muffin, XSession
+from xsessionp import Muffin, XSession, XSessionp
 
 from .testutils import kill_all_xclock_instances
 
@@ -49,13 +49,11 @@ def muffin() -> Muffin:
 
 
 @pytest.fixture()
-def window_id(xsession: XSession) -> int:
+def window_id(xsessionp: XSessionp) -> int:
     """Provides the window ID of a launched xclock instance."""
-    window_metadata = launch_command(args=["xclock"], xsession=xsession)
+    window_metadata = xsessionp.launch_command(args=["xclock"])
     try:
-        yield guess_window(
-            title_hint="^xclock$", windows=window_metadata, xsession=xsession
-        )
+        yield xsessionp.guess_window(title_hint="^xclock$", windows=window_metadata)
     finally:
         kill_all_xclock_instances()
 
@@ -64,3 +62,9 @@ def window_id(xsession: XSession) -> int:
 def xsession() -> XSession:
     """Provides an XSession instance."""
     return XSession()
+
+
+@pytest.fixture
+def xsessionp(xsession: XSession) -> XSessionp:
+    """Provides an XSessionp instance."""
+    return XSessionp(xsession=xsession)
