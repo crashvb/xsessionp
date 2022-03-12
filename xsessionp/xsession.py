@@ -46,8 +46,29 @@ from Xlib.Xcursorfont import crosshair as xcf_crosshair
 from Xlib.XK import string_to_keysym
 from Xlib.Xutil import IconicState
 
-from .ewmh import *
-from .icccm import *
+from .ewmh import (
+    ACTION_ADD,
+    ACTION_REMOVE,
+    NET_ACTIVE_WINDOW,
+    NET_CLOSE_WINDOW,
+    NET_FRAME_EXTENTS,
+    NET_MOVERESIZE_WINDOW,
+    NET_SUPPORTED,
+    NET_SUPPORTING_WM_CHECK,
+    NET_VIRTUAL_ROOTS,
+    NET_WM_ALLOWED_ACTIONS,
+    NET_WM_DESKTOP,
+    NET_WM_NAME,
+    NET_WM_PID,
+    NET_WM_STATE,
+    NET_WM_STATE_MAXIMIZED_HORZ,
+    NET_WM_STATE_MAXIMIZED_VERT,
+    NET_WM_VISIBLE_NAME,
+    NET_WM_WINDOW_TYPE,
+    NET_WORKAREA,
+    SOURCE_PAGER,
+)
+from .icccm import WM_CHANGE_STATE, WM_NAME
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,8 +99,6 @@ class XSession:
     #       Likewise, would it be acceptable for setatter to assume 'value' is of type(GetProperty), result in in:
     #           'XSession._NET_SHOWING_DESKTOP = GetProperty(...)' ???
     def __getattr__(self, item):
-        if NET_SUPPORTED not in self.__dict__:
-            self._do_supported()
         if str(item).lower().startswith("_net_"):
             atom = self._get_supported_atom(atom=item)
             return self._get_property(atom=atom, check=self.__dict__["check"])
@@ -90,8 +109,6 @@ class XSession:
         self.__dict__["display"] = None
 
     def __setattr__(self, key, value):
-        if NET_SUPPORTED not in self.__dict__:
-            self._do_supported()
         if str(key).lower().startswith("_net_"):
             atom = self._get_supported_atom(atom=key)
             self._set_property(atom=atom, check=self.__dict__["check"], data=value)
@@ -131,13 +148,6 @@ class XSession:
                 property_type=property_type,
             )
 
-    @lru_cache(maxsize=None, typed=True)
-    def _do_supported(self):
-        """Probes the window manager for supported atoms."""
-        self.__dict__[NET_SUPPORTED] = list(
-            self._get_property(atom=NET_SUPPORTED).value
-        )
-
     def _get_atom(self, *, check: bool = None, atom: Union[int, str]) -> int:
         """Retrieves an atom (object) from a given atom or atom name."""
         if isinstance(atom, str):
@@ -148,9 +158,14 @@ class XSession:
         """Retrieves the propagated value of the check parameter."""
         return self.check if check is None else check
 
-    def _get_supported_atom(self, atom: Union[int, str]) -> int:
+    @lru_cache(maxsize=None, typed=True)
+    def _get_supported_atom(self, atom: Union[int, str], check: bool = None) -> int:
         """Retrieves a supported atom or raises an exception."""
-        atom = self._get_atom(atom=atom)
+        if NET_SUPPORTED not in self.__dict__:
+            self.__dict__[NET_SUPPORTED] = list(
+                self._get_property(atom=NET_SUPPORTED).value
+            )
+        atom = self._get_atom(atom=atom, check=check)
         if atom not in self.__dict__[NET_SUPPORTED]:
             raise KeyError(f"Unsupported atom: {atom}")
         return atom

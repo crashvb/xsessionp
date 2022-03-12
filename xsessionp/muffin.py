@@ -126,6 +126,12 @@ class Muffin(XSession):
     ):
         """It's unfortunate that it's come to this, but seems to be effective =/."""
 
+        # Keyboard events only seems to work when the window and desktop are both active ...
+        self.get_display().sync()
+        desktop = self.get_window_desktop(window=window)
+        self.set_desktop_active(desktop=desktop)
+        self.set_window_active(window=window)
+
         def untile():
             """Untiles the window."""
             self._send_keys(
@@ -194,6 +200,7 @@ class Muffin(XSession):
         tile_type: TileType = TileType.TILED,
         window: Union[int, Window],
     ):
+        # pylint: disable=unused-argument
         """This is not tiling, but it does "something" ..."""
         if tile_mode == TileMode.NONE:
             LOGGER.warning("tile_method=MOVERESIZE and tile_mode=NONE not supported!")

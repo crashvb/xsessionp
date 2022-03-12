@@ -20,7 +20,7 @@ import yaml
 from flatten_dict import flatten, unflatten
 from Xlib.error import BadWindow
 from Xlib.xobject.drawable import Window
-from Xlib.X import IsViewable
+from Xlib.X import AnyPropertyType, IsViewable
 from Xlib.Xatom import STRING
 
 from .muffin import Muffin, TileMode as TileModeMuffin, TileType as TileTypeMuffin
@@ -38,8 +38,9 @@ class TypingWindowConfiguration(TypedDict):
     id: Optional[int]  # Should only be assigned internally
 
     command: Union[List, str]
+    copy_environment: Optional[bool]
     desktop: Optional[int]
-    do_not_copy_environment: Optional[bool]
+    disabled: Optional[bool]
     environment: Optional[Dict[str, str]]
     focus: Optional[bool]
     geometry: Optional[str]
@@ -69,10 +70,29 @@ class XSessionp(XSession):
             self.check = xsession.check
             self.display = xsession.display
 
+    def find_xsessionp_windows(self) -> Optional[List[Window]]:
+        """Locates windows containing metadata from xsessionp."""
+        return self.search(
+            matcher=lambda x: self.get_window_xsessionp_metadata(check=False, window=x)
+            is not None
+        )
+
     def get_window_manager_name(self) -> str:
         """Returns the raw name of the window manager."""
         window = self.get_window_manager()
         return self.get_window_name(window=window)
+
+    def get_window_xsessionp_metadata(
+        self, *, check: bool = None, window: Union[int, Window]
+    ) -> Optional[str]:
+        """Retrieves the desktop containing a given window."""
+        get_property = self._get_property(
+            atom=XSESSIONP_METADATA,
+            check=check,
+            property_type=AnyPropertyType,
+            window=window,
+        )
+        return get_property.value if get_property else None
 
     @staticmethod
     def generate_name(*, index: int, path: Path) -> str:
@@ -131,7 +151,7 @@ class XSessionp(XSession):
         for window in windows:
             try:
                 name = self.get_window_name(check=False, window=window)
-                if pattern.match(name):
+                if name is not None and pattern.match(name):
                     guesses.append(TypingWindowMetadata(id=window.id, name=name))
             except BadWindow:
                 # Ignore state changes during traversal
@@ -208,7 +228,7 @@ class XSessionp(XSession):
     def load(
         self, *, indices: List[int] = None, names: List[Pattern] = None, path: Path
     ):
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access,too-many-branches,too-many-locals,too-many-statements
         """
         Loads a given xsessionp configuration file.
 
@@ -222,6 +242,10 @@ class XSessionp(XSession):
         config = self.sanitize_config(config=config)
         # LOGGER.debug("Configuration:\n%s", yaml.dump(config))
 
+        if indices is None:
+            indices = []
+        if names is None:
+            names = []
         LOGGER.debug("Indices : %s", ",".join(map(str, indices)))
         LOGGER.debug("Names   :")
         for name in names:
@@ -234,21 +258,31 @@ class XSessionp(XSession):
             if "name" not in window:
                 window["name"] = self.generate_name(index=i, path=path)
 
-            # Filter, if requested.
+            # Check: indices and names ...
             if indices and i not in indices:
+                LOGGER.debug("Skipping; window[%s] filtered by index.", i)
                 continue
-            if names and not any([name.match(string=window["name"]) for name in names]):
+            if names and not any((name.match(string=window["name"]) for name in names)):
+                LOGGER.debug("Skipping; window[%s] filtered by name.", i)
                 continue
 
             # Instantiate the window configuration ...
             window = self.inherit_globals(config=config, window=window)
 
+            # Check: disabled ...
+            disabled = False
+            if self.key_enabled(key="disabled", window=window):
+                disabled = bool(window["disabled"])
+            if disabled:
+                LOGGER.debug("Skipping; window[%s] disabled.", i)
+                continue
+
             # Construct: environment ...
+            copy_environment = True
             env = {}
-            if (
-                not self.key_enabled(key="do_not_copy_environment", window=window)
-                or not window["do_not_copy_environment"]
-            ):
+            if self.key_enabled(key="copy_environment", window=window):
+                copy_environment = bool(window["copy_environment"])
+            if copy_environment:
                 env = os.environ.copy()
             if self.key_enabled(key="environment", window=window):
                 env.update(window["environment"])
@@ -256,7 +290,7 @@ class XSessionp(XSession):
             # Construct: shell ...
             shell = False
             if self.key_enabled(key="shell", window=window):
-                shell = window["shell"]
+                shell = bool(window["shell"])
 
             # Construct: start_directory ...
             start_directory = "/"
@@ -282,24 +316,19 @@ class XSessionp(XSession):
                     stderr=devnull,
                     stdout=devnull,
                 )
-            # TODO: Why do we need to double assign to get activate to work after the loop?
+            # Note: Lop variables in python are allocated from the heap =/
             config["windows"][i]["id"] = window["id"] = self.guess_window(
                 title_hint=title_hint, windows=potential_windows
             )
-            LOGGER.debug("Guessed window ID: %s", window["id"])
+            LOGGER.debug("Guessed window[%s] ID: %s", i, window["id"])
             if window["id"] is None:
                 LOGGER.error("Unable to locate spawned window!")
                 continue
 
-            # Add metadata to the new window ...
-            self.get_atom(
-                name=XSESSIONP_METADATA, only_if_exists=False
-            )  # Bootstrap creation of atom
-            self._change_property(
-                atom=XSESSIONP_METADATA,
-                data=json.dumps(obj=window, sort_keys=True),
-                property_type=STRING,
-                window=window["id"],
+            # Add metadata to the new window (bootstrap atom creation) ...
+            self.get_atom(name=XSESSIONP_METADATA, only_if_exists=False)
+            self.set_window_xsessionp_metadata(
+                data=json.dumps(obj=window, sort_keys=True), window=window["id"]
             )
 
             start_timeout = 3
@@ -315,7 +344,7 @@ class XSessionp(XSession):
         windows = [
             w
             for w in config["windows"]
-            if self.key_enabled(key="focus", window=w) and w["focus"]
+            if self.key_enabled(key="focus", window=w) and bool(w["focus"])
         ]
         if len(windows) > 1:
             LOGGER.error(
@@ -346,11 +375,14 @@ class XSessionp(XSession):
             if self.key_enabled(key="snapped", window=window):
                 snapped = bool(window["snapped"])
 
-            self.tile_window(
+            self.window_tile(
                 tile_mode=window["tile"],
                 tile_type="SNAPPED" if snapped else "TILED",
-                window_id=window["id"],
+                window=window["id"],
             )
+
+    def reposition_windows(self):
+        """Repositions windows launched by xsessionp w/o reloading."""
 
     @staticmethod
     def sanitize_config(*, config: dict) -> dict:
@@ -363,14 +395,38 @@ class XSessionp(XSession):
                 config.pop(invalid_global)
 
         # Check for and remove user-provided IDs ...
-        if any([window.get("id") for window in config["windows"]]):
+        if any((window.get("id") for window in config["windows"])):
             LOGGER.warning('Reserved attribute "id" defined by user; ignoring ...')
 
         return config
 
-    # TODO: Need to test on something other than Linux Mint Cinnamon ...
-    def tile_window(
-        self, *, tile_mode: str = None, tile_type: str = None, window_id: int
+    def set_window_xsessionp_metadata(
+        self,
+        *,
+        check: bool = None,
+        data,
+        window: Union[int, Window],
+        **kwargs,
+    ):
+        """Assigns a desktop to a given window."""
+        LOGGER.debug(
+            "Assigning xsessionp metadata to window %d", self._get_window_id(window)
+        )
+        self._change_property(
+            atom=XSESSIONP_METADATA,
+            check=check,
+            data=data,
+            property_type=STRING,
+            window=window,
+            **kwargs,
+        )
+
+    def window_tile(
+        self,
+        *,
+        tile_mode: str = None,
+        tile_type: str = None,
+        window: Union[int, Window],
     ):
         """Tiles a given window."""
         window_manager = self.get_window_manager_name().lower()
@@ -379,7 +435,7 @@ class XSessionp(XSession):
             LOGGER.debug(
                 "Tiling [%s] window %d to: %s [%s]",
                 window_manager,
-                window_id,
+                self._get_window_id(window=window),
                 tile_mode,
                 tile_type.lower(),
             )
@@ -387,14 +443,15 @@ class XSessionp(XSession):
             muffin.window_tile(
                 tile_mode=TileModeMuffin[tile_mode.upper()],
                 tile_type=TileTypeMuffin[tile_type.upper()],
-                window=window_id,
+                window=window,
             )
+        # TODO: Add support for window managers common outside of Linux Mint Cinnamon ...
         else:
             raise NotImplementedError(f"Unsupported window manager: {window_manager}")
 
     def wait_visible_window(
         self, *, delay: int = 1, retry: int = 3, window: Union[int, Window]
-    ):
+    ) -> bool:
         """Waits for a window to be visible."""
         window = self._get_window(window=window)
         while retry:
@@ -406,6 +463,7 @@ class XSessionp(XSession):
             get_window_attributes = window.get_attributes()
             if get_window_attributes.map_state == IsViewable:
                 LOGGER.debug("Window is visible.")
-                break
+                return True
             retry -= 1
             sleep(delay)
+        return False

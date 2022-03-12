@@ -216,7 +216,7 @@ def test_set_xproperties(window_id: int):
 
 @pytest.mark.xclock
 def test_set_xproperty(window_id: int):
-    """Tests that aproperty can be assigned to a given window."""
+    """Tests that a property can be assigned to a given window."""
     xprop0 = TypingXProperty(
         format=None, name="WM_ICON_NAME", type="STRING", value="xclock"
     )

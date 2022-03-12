@@ -3,12 +3,13 @@
 """Utility classes."""
 
 import logging
+import re
 import subprocess
 import sys
 
 from logging import Formatter
 from pathlib import Path
-from re import compile, Pattern, sub
+from re import Pattern
 from typing import List, Union
 
 import click
@@ -90,6 +91,7 @@ def run(**kwargs) -> str:
 
 
 def set_log_levels(verbosity: int = LOGGING_DEFAULT):
+    # pylint: disable=protected-access
     """
     Assigns the logging levels in a consistent way.
 
@@ -133,9 +135,9 @@ def to_list_int(context, param, value: str) -> List[int]:
     # pylint: disable=unused-argument
     """Constructs a list of integers from a comma-separated string."""
     result = []
-    for v in value:
-        v = sub(pattern=r"[^0-9,-]", repl="", string=v)
-        for i in list(filter(lambda x: len(x), v.split(","))):
+    for val in value:
+        val = re.sub(pattern=r"[^0-9,-]", repl="", string=val)
+        for i in list(filter(lambda x: len(x), val.split(","))):
             if "-" in i:
                 bound_lower, bound_upper = map(int, i.split("-"))
                 result.extend(range(bound_lower, bound_upper + 1))
@@ -147,4 +149,4 @@ def to_list_int(context, param, value: str) -> List[int]:
 def to_pattern(context, param, value: str) -> List[Pattern]:
     # pylint: disable=unused-argument
     """Compiles a regular expression pattern from a string."""
-    return [compile(pattern=v) for v in value]
+    return [re.compile(pattern=v) for v in value]

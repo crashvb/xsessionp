@@ -18,15 +18,13 @@ from Xlib.X import IsUnmapped, IsViewable, NONE
 
 from xsessionp import (
     ACTION_REMOVE,
-    ACTION_TOGGLE,
     get_uptime,
-    NET_NUMBER_OF_DESKTOPS,
-    NET_WM_STATE_HIDDEN,
     NET_WM_STATE_MAXIMIZED_HORZ,
     NET_WM_STATE_MAXIMIZED_VERT,
     XSession,
     XSessionp,
 )
+from xsessionp.ewmh import ACTION_TOGGLE, NET_NUMBER_OF_DESKTOPS, NET_WM_STATE_HIDDEN
 
 from .testutils import allow_xserver_to_sync, kill_all_xclock_instances
 
@@ -354,15 +352,15 @@ def test_get_window_state(window_id: int, xsession: XSession):
     assert atom_value in states1
 
 
-@pytest.mark.xclock
 @pytest.mark.skip("Test scenario refinement needed.")
+@pytest.mark.xclock
 def test_get_window_type(window_id: int, xsession: XSession):
     """Tests that the type can be retrieved for a window."""
     assert xsession.get_window_type(window=window_id)
 
 
-@pytest.mark.xclock
 @pytest.mark.skip("Test scenario refinement needed.")
+@pytest.mark.xclock
 def test_get_window_visible_name(window_id: int, xsession: XSession):
     """Tests that the visible name can be retrieved for a window."""
     assert xsession.get_window_visible_name(window=window_id) == "xclock"
@@ -394,10 +392,15 @@ def test_get_virtual_roots(xsession: XSession):
 @pytest.mark.xclock
 def test_search(window_id: int, xsession: XSession):
     """Tests that a search can be performed to find a window."""
-    # # Test an open search ...
-    # windows = xsession.search()
-    # assert windows
-    # assert len(windows) > 5
+    max_results = 3
+
+    # Test an open search ...
+    windows = xsession.search()
+    assert windows
+    if len(windows) <= max_results:
+        pytest.skip(
+            f"Number of windows {len(windows)} is less than required value: {max_results + 1}"
+        )
 
     # Test matcher ...
     windows = xsession.search(
@@ -407,10 +410,10 @@ def test_search(window_id: int, xsession: XSession):
     assert len(windows) == 1
     assert windows[0].id == window_id
 
-    # # Test max_results ...
-    # windows = xsession.search(max_results=5)
-    # assert windows
-    # assert len(windows) == 5
+    # Test max_results ...
+    windows = xsession.search(max_results=max_results)
+    assert windows
+    assert len(windows) == max_results
 
 
 @pytest.mark.skipif(
@@ -418,7 +421,6 @@ def test_search(window_id: int, xsession: XSession):
 )
 def test_set_desktop_active(xsession: XSession):
     """Tests that the active desktop can be assigned."""
-
     desktop_count = xsession.get_desktop_count()
     if desktop_count < 2:
         pytest.skip(
@@ -441,7 +443,6 @@ def test_set_desktop_active(xsession: XSession):
     set_desktop(desktop=desktop_original)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.skipif(
     "ALLOW_DISPLAY_MODIFICATION" not in os.environ, reason="Sane unit testing."
 )
@@ -460,7 +461,6 @@ def test_set_desktop_count(xsession: XSession):
     set_count(count=count_original)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.skipif(
     "ALLOW_DISPLAY_MODIFICATION" not in os.environ, reason="Sane unit testing."
 )

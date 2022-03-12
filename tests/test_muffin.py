@@ -9,7 +9,7 @@ import os
 
 import pytest
 
-from xsessionp import Muffin, TileMode, TileType
+from xsessionp import Muffin, NET_WM_STATE_TILED, TileMode, TileType
 
 from .testutils import allow_xserver_to_sync
 
@@ -27,7 +27,7 @@ def test___init__(muffin: Muffin):
     reason="xvfb failure: Unable to intern atom: _NET_WM_WINDOW_TILE_INFO",
 )
 @pytest.mark.xclock
-def test_get_set_window_tile_info(window_id: int, muffin: Muffin):
+def test_get_set_window_tile_info(muffin: Muffin, window_id: int):
     """Tests that tile information can be retrieved / assigned to a window."""
     tile_info0 = muffin.get_window_tile_info(window=window_id)
     assert not tile_info0
@@ -58,9 +58,11 @@ def test_get_set_window_tile_info(window_id: int, muffin: Muffin):
     reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
 )
 @pytest.mark.xclock
-def test_window_tile(window_id: int, muffin: Muffin):
+def test_window_tile(muffin: Muffin, window_id: int):
     # pylint: disable=too-many-locals,too-many-statements
     """Tests that a window can be tiled."""
+
+    atom_net_wm_state_tiled = muffin.get_atom(name=NET_WM_STATE_TILED)
 
     # TODO: Why is set_window_focus() in _send_Keys failing sometimes?
     muffin.set_window_active(window=window_id)
@@ -90,7 +92,7 @@ def test_window_tile(window_id: int, muffin: Muffin):
     assert tile_info1
     state1 = muffin.get_window_state(window=window_id)
     assert state1
-    assert muffin.get_atom(name="_NET_WM_STATE_TILED") in state1
+    assert atom_net_wm_state_tiled in state1
 
     # Untile ...
     muffin.window_tile(tile_mode=TileMode.NONE, window=window_id)
@@ -104,7 +106,7 @@ def test_window_tile(window_id: int, muffin: Muffin):
     tile_info2 = muffin.get_window_tile_info(check=False, window=window_id)
     assert not tile_info2
     state2 = muffin.get_window_state(window=window_id)
-    assert muffin.get_atom(name="_NET_WM_STATE_TILED") not in state2
+    assert atom_net_wm_state_tiled not in state2
 
     # Tile right top ...
     muffin.window_tile(tile_mode=TileMode.RIGHT_TOP, window=window_id)
@@ -122,4 +124,4 @@ def test_window_tile(window_id: int, muffin: Muffin):
     assert tile_info3 != tile_info1
     state3 = muffin.get_window_state(window=window_id)
     assert state3
-    assert muffin.get_atom(name="_NET_WM_STATE_TILED") in state3
+    assert atom_net_wm_state_tiled in state3

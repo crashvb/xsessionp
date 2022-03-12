@@ -52,7 +52,7 @@ windows:
   desktop: 1
   # By default, windows are started with a copy of the parent environment, then augmented. Uncomment the line below
   # to augment an empty environment instead.
-  #   do_not_copy_environment: true
+  #   copy_environment: false
   environment:
     foo: bar
     asdf: qwer
