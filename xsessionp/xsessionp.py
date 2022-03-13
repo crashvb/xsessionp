@@ -381,9 +381,6 @@ class XSessionp(XSession):
                 window=window["id"],
             )
 
-    def reposition_windows(self):
-        """Repositions windows launched by xsessionp w/o reloading."""
-
     @staticmethod
     def sanitize_config(*, config: dict) -> dict:
         """Best effort at ensuring a sane configuration prior to processing."""

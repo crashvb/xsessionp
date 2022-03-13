@@ -13,12 +13,12 @@ from re import escape, Pattern
 from shutil import which
 from tempfile import TemporaryDirectory
 from traceback import print_exception
-from typing import Generator, List, NamedTuple
+from typing import Generator, List, NamedTuple, Optional, Union
 
 import click
+import yaml
 
 from click.core import Context
-from yaml import dump
 
 from .utils import (
     LOGGING_DEFAULT,
@@ -194,7 +194,7 @@ def learn(context: Context, filter_environment: bool = True):
                 }
             ]
         }
-        LOGGER.info("\n%s", dump(data=template))
+        LOGGER.info("\n%s", yaml.dump(data=template))
     except Exception as exception:  # pylint: disable=broad-except
         if ctx.verbosity > 0:
             logging.fatal(exception)
@@ -204,7 +204,7 @@ def learn(context: Context, filter_environment: bool = True):
         sys.exit(1)
 
 
-def list_columns(*, context: Context):
+def list_columns(*, context: Context, output: str = "plain"):
     """Lists valid column names for formatting."""
     ctx = get_context_object(context=context)
     columns = ["id", "xname"]
@@ -215,7 +215,12 @@ def list_columns(*, context: Context):
             in inspect.getfullargspec(getattr(ctx.xsessionp, method)).kwonlyargs
         ):
             columns.append(method[11:])
-    LOGGER.info("Valid column names: %s", ", ".join(sorted(columns)))
+    if output == "json":
+        print(json.dumps(obj=columns))
+    elif output == "plain":
+        print("  ".join(sorted(columns)))
+    else:
+        print(yaml.dump(data=columns))
 
 
 @cli.command(name="list-windows", short_help="Lists discovered xsessionp window(s).")
@@ -226,10 +231,10 @@ def list_columns(*, context: Context):
     is_flag=True,
 )
 @click.option(
-    "-f",
-    "--format",
+    "-c",
+    "--columns",
     default="id,xname,desktop,position,dimensions,name",
-    help="A comma-separated list of columns. Use -f='' for a list of valid columns.",
+    help="A comma-separated list of columns. Use --columns= for a list of valid columns.",
     show_default=True,
 )
 @click.option(
@@ -238,8 +243,17 @@ def list_columns(*, context: Context):
     help="If specified, column headers will be omitted.",
     is_flag=True,
 )
+@click.option(
+    "-o",
+    "--output",
+    help="Output format.",
+    default="plain",
+    type=click.Choice(["json", "plain", "yaml"], case_sensitive=False),
+)
 @click.pass_context
-def list_windows(context: Context, all: bool, format: str, no_headers: bool):
+def list_windows(
+    context: Context, all: bool, columns: str, no_headers: bool, output: str
+):
     # pylint: disable=protected-access,redefined-builtin,too-many-branches,too-many-locals
     """
     Lists managed windows in a given format.
@@ -247,12 +261,13 @@ def list_windows(context: Context, all: bool, format: str, no_headers: bool):
     The output format can be specified as a colon-separated list of column names, each of which will be populated
     from the corresponding xsessionp.get_window_<column>() method.
     """
-    if format == "":
-        list_columns(context=context)
+    output = output.lower()
+    if columns == "":
+        list_columns(context=context, output=output)
         return
 
     ctx = get_context_object(context=context)
-    columns = [column for column in format.split(",") if column]
+    columns = [column for column in columns.split(",") if column]
     desktop = ctx.xsessionp.get_desktop_active()
     rows = [] if no_headers else [[column.upper() for column in columns]]
     windows = ctx.xsessionp.find_xsessionp_windows()
@@ -282,14 +297,19 @@ def list_windows(context: Context, all: bool, format: str, no_headers: bool):
         if row:
             rows.append(row)
 
-    column_width = []
-    if rows:
-        for i in range(0, len(columns)):
-            column_width.append(len(max([row[i] for row in rows], key=len)))
-    for row in rows:
-        for i, column in enumerate(row):
-            print(column.ljust(column_width[i]), end="  ")
-        print()
+    if output == "json":
+        print(json.dumps(obj=rows))
+    elif output == "plain":
+        column_width = []
+        if rows:
+            for i in range(0, len(columns)):
+                column_width.append(len(max([row[i] for row in rows], key=len)))
+        for row in rows:
+            for i, column in enumerate(row):
+                print(column.ljust(column_width[i]), end="  ")
+            print()
+    else:
+        print(yaml.dump(data=rows))
 
 
 @cli.command(short_help="Load xsessionp workspace(s).")
@@ -339,29 +359,11 @@ def load(context: Context, config: List[str], index: List[int], name: List[Patte
     ctx = get_context_object(context=context)
     try:
         configs = []
-        paths = [Path(c) for c in config]
-        for path in paths:
-            # Is it absolute, or relative to the CWD?
-            if path.exists():
+        # Resolve all provided configurations prior to loading any ...
+        for cfg in config:
+            path = resolve_config(config=cfg)
+            if path:
                 configs.append(path)
-                continue
-
-            # Is it relative to a configuration directory?
-            for config_dir in get_config_dirs():
-                lpath = config_dir.joinpath(path)
-                if lpath.exists():
-                    configs.append(lpath)
-                    break
-                found = False
-                for extension in EXTENSIONS:
-                    lpath = config_dir.joinpath(f"{str(path)}.{extension}")
-                    if lpath.exists():
-                        configs.append(lpath)
-                        found = True
-                        break
-                if found:
-                    break
-
         for path in configs:
             ctx.xsessionp.load(indices=index, names=name, path=path)
     except Exception as exception:  # pylint: disable=broad-except
@@ -413,6 +415,68 @@ def ls(context: Context, qualified: bool):
         sys.exit(1)
 
 
+@cli.command(name="reposition-window", short_help="Reposition the target window(s).")
+@click.option(
+    "-a",
+    "--all",
+    help="If specified, all windows except the target will be repositioned.",
+    is_flag=True,
+)
+@click.option("-d", "--desktop", help="The target desktop.", type=int)
+@click.option("-t", "--target", help="The target window name.")
+@click.pass_context
+def reposition_windows(context: Context, all: bool, desktop: int, target: str):
+    # pylint: disable=redefined-builtin
+    """Aligns the current position of a managed window(s) to match the embedded metadata."""
+    ctx = get_context_object(context=context)
+    try:
+        if desktop is not None and target is not None:
+            LOGGER.fatal("Options 'desktop' and 'target' are mutually exclusive!")
+            sys.exit(1)
+
+        ctx = get_context_object(context=context)
+        windows = ctx.xsessionp.find_xsessionp_windows()
+        for window in windows:
+            conditional = False
+            xsessionp_metadata = ctx.xsessionp.get_window_xsessionp_metadata(
+                window=window
+            )
+            xsessionp_metadata = json.loads(xsessionp_metadata)
+            if desktop is not None:
+                conditional = ctx.xsessionp.get_window_desktop(window=window) == desktop
+            if target is not None:
+                conditional = xsessionp_metadata["name"] == target
+            if all != conditional:
+                ctx.xsessionp.position_window(window=xsessionp_metadata)
+    except Exception as exception:  # pylint: disable=broad-except
+        if ctx.verbosity > 0:
+            logging.fatal(exception)
+        if ctx.verbosity > LOGGING_DEFAULT:
+            exc_info = sys.exc_info()
+            print_exception(*exc_info)
+        sys.exit(1)
+
+
+def resolve_config(*, config: Union[Path, str]) -> Optional[Path]:
+    """Resolves a config to an absolute Path."""
+    path = config if isinstance(config, Path) else Path(config)
+
+    # Is it absolute, or relative to the CWD?
+    if path.exists():
+        return path
+
+    # Is it relative to a configuration directory?
+    for config_dir in get_config_dirs():
+        lpath = config_dir.joinpath(path)
+        if lpath.exists():
+            return lpath
+        for extension in EXTENSIONS:
+            lpath = config_dir.joinpath(f"{str(path)}.{extension}")
+            if lpath.exists():
+                return lpath
+    return None
+
+
 @cli.command(short_help="Perform basic acceptance tests.")
 @click.pass_context
 def test(context: Context):
@@ -452,7 +516,7 @@ def test(context: Context):
                     },
                 ],
             }
-            data = dump(data=data)
+            data = yaml.dump(data=data)
             path.write_text(data=data, encoding="utf-8")
             LOGGER.info("Test Configuration:\n%s", data)
 
