@@ -126,12 +126,6 @@ class Muffin(XSession):
     ):
         """It's unfortunate that it's come to this, but seems to be effective =/."""
 
-        # Keyboard events only seems to work when the window and desktop are both active ...
-        self.get_display().sync()
-        desktop = self.get_window_desktop(window=window)
-        self.set_desktop_active(desktop=desktop)
-        self.set_window_active(window=window)
-
         def untile():
             """Untiles the window."""
             self._send_keys(
@@ -286,13 +280,13 @@ class Muffin(XSession):
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the tile information for a given window."""
-        get_property = self._get_property(
+        result = self._get_property(
             atom=NET_WM_WINDOW_TILE_INFO,
             check=check,
             property_type=AnyPropertyType,
             window=window,
         )
-        return list(get_property.value) if get_property else None
+        return list(result) if result else None
 
     def set_window_tile_info(
         self,

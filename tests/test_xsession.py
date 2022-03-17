@@ -42,7 +42,7 @@ def test___init__(xsession: XSession):
 )
 def test___getattr____setattr__(xsession: XSession):
     """Tests __getattr__ and __setattr__ methods."""
-    desktop_count = xsession._NET_NUMBER_OF_DESKTOPS.value[0]
+    desktop_count = xsession._NET_NUMBER_OF_DESKTOPS[0]
     if desktop_count < 2:
         pytest.skip(
             f"Number of desktops {desktop_count} is less than required value: 2"
@@ -51,10 +51,10 @@ def test___getattr____setattr__(xsession: XSession):
     def set_desktop(*, desktop: int):
         xsession._NET_CURRENT_DESKTOP = [desktop, get_uptime()]
         allow_xserver_to_sync()
-        assert xsession._NET_CURRENT_DESKTOP.value[0] == desktop
+        assert xsession._NET_CURRENT_DESKTOP[0] == desktop
 
     # Find a desktop other than the current one ...
-    desktop_original = xsession._NET_CURRENT_DESKTOP.value[0]
+    desktop_original = xsession._NET_CURRENT_DESKTOP[0]
     assert desktop_original is not None
     desktop_target = desktop_count - 1 if desktop_original == 0 else 0
     assert desktop_target != desktop_original
@@ -284,6 +284,7 @@ def test_get_window_focus(xsession: XSession):
 
 
 @pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
+@pytest.mark.xclock
 def test_get_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that the frame extents of a window can be retrieved."""
     frame_extents = xsession.get_window_frame_extents(window=window_id)
@@ -778,6 +779,15 @@ def test_set_window_state(window_id: int, xsession: XSession):
     assert states4 != states3
 
 
+# TODO: def test_wait_window_active (xsessionp: XSessionp):
+
+
+# TODO: def test_wait_window_focused (xsessionp: XSessionp):
+
+
+# TODO: def test_wait_window_visible (xsessionp: XSessionp):
+
+
 @pytest.mark.xclock
 def test_window_destroy(window_id: int, xsession: XSession):
     """Tests that a window can be destroyed."""
@@ -794,6 +804,31 @@ def test_window_kill(window_id: int, xsession: XSession):
     allow_xserver_to_sync()
     with pytest.raises(BadWindow):
         xsession.get_window_name(window=window_id)
+
+
+# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
+@pytest.mark.xclock
+def test_window_map_unmap(window_id: int, xsession: XSession):
+    """Tests that a window can be mapped and unmapped."""
+    window = xsession.get_window_by_id(window_id=window_id)
+
+    # Should be visible
+    get_window_attributes = window.get_attributes()
+    assert get_window_attributes.map_state == IsViewable
+
+    xsession.window_unmap(window=window_id)
+    allow_xserver_to_sync()
+
+    # Should not be visible
+    get_window_attributes = window.get_attributes()
+    assert get_window_attributes.map_state == IsUnmapped
+
+    xsession.window_map(window=window_id)
+    allow_xserver_to_sync()
+
+    # Should be visible
+    get_window_attributes = window.get_attributes()
+    assert get_window_attributes.map_state == IsViewable
 
 
 @pytest.mark.skipif(
@@ -918,31 +953,6 @@ def test_window_moveresize(window_id: int, xsession: XSession):
 def test_window_select(xsession: XSession):
     """Tests that a window can be graphically selected."""
     assert xsession.window_select()
-
-
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
-@pytest.mark.xclock
-def test_window_map_unmap(window_id: int, xsession: XSession):
-    """Tests that a window can be mapped and unmapped."""
-    window = xsession.get_window_by_id(window_id=window_id)
-
-    # Should be visible
-    get_window_attributes = window.get_attributes()
-    assert get_window_attributes.map_state == IsViewable
-
-    xsession.window_unmap(window=window_id)
-    allow_xserver_to_sync()
-
-    # Should not be visible
-    get_window_attributes = window.get_attributes()
-    assert get_window_attributes.map_state == IsUnmapped
-
-    xsession.window_map(window=window_id)
-    allow_xserver_to_sync()
-
-    # Should be visible
-    get_window_attributes = window.get_attributes()
-    assert get_window_attributes.map_state == IsViewable
 
 
 # TODO: def test_windowraise(xsession: XSession):

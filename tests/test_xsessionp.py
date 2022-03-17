@@ -212,6 +212,3 @@ def test_window_tile_muffin(muffin: Muffin, window_id: int, xsessionp: XSessionp
     state3 = xsessionp.get_window_state(window=window_id)
     assert state3
     assert atom_net_wm_state_tiled in state3
-
-
-# TODO: def test_wait_visible_window(xsessionp: XSessionp):

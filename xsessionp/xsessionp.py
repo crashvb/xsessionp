@@ -20,7 +20,7 @@ import yaml
 from flatten_dict import flatten, unflatten
 from Xlib.error import BadWindow
 from Xlib.xobject.drawable import Window
-from Xlib.X import AnyPropertyType, IsViewable
+from Xlib.X import AnyPropertyType
 from Xlib.Xatom import STRING
 
 from .muffin import Muffin, TileMode as TileModeMuffin, TileType as TileTypeMuffin
@@ -86,13 +86,12 @@ class XSessionp(XSession):
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[str]:
         """Retrieves the desktop containing a given window."""
-        get_property = self._get_property(
+        return self._get_property(
             atom=XSESSIONP_METADATA,
             check=check,
             property_type=AnyPropertyType,
             window=window,
         )
-        return get_property.value if get_property else None
 
     @staticmethod
     def generate_name(*, index: int, path: Path) -> str:
@@ -334,7 +333,7 @@ class XSessionp(XSession):
             start_timeout = 3
             if self.key_enabled(key="start_timeout", window=window):
                 start_timeout = window["start_timeout"]
-            self.wait_visible_window(retry=start_timeout, window=window["id"])
+            self.wait_window_visible(retry=start_timeout, window=window["id"])
 
             # Position the window ...
             self.position_window(window=window)
@@ -401,7 +400,7 @@ class XSessionp(XSession):
         self,
         *,
         check: bool = None,
-        data,
+        data: str,
         window: Union[int, Window],
         **kwargs,
     ):
@@ -445,22 +444,3 @@ class XSessionp(XSession):
         # TODO: Add support for window managers common outside of Linux Mint Cinnamon ...
         else:
             raise NotImplementedError(f"Unsupported window manager: {window_manager}")
-
-    def wait_visible_window(
-        self, *, delay: int = 1, retry: int = 3, window: Union[int, Window]
-    ) -> bool:
-        """Waits for a window to be visible."""
-        window = self._get_window(window=window)
-        while retry:
-            LOGGER.debug(
-                "Waiting for window to be visible (try #%d): %s",
-                retry,
-                self._get_window_id(window=window),
-            )
-            get_window_attributes = window.get_attributes()
-            if get_window_attributes.map_state == IsViewable:
-                LOGGER.debug("Window is visible.")
-                return True
-            retry -= 1
-            sleep(delay)
-        return False
