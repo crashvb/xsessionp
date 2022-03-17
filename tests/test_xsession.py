@@ -949,13 +949,45 @@ def test_window_moveresize(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) == position1
 
 
+@pytest.mark.xclock
+def test_window_raise(xsessionp: XSessionp):
+    """Tests that a window can be activated."""
+    try:
+
+        def raise_window(*, window: int):
+            xsessionp.set_window_active(window=window)
+            allow_xserver_to_sync()
+            assert xsessionp.get_window_active().id == window
+
+        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_id0 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata0
+        )
+        assert window_id0
+
+        # After the next command window_id0 will be raised, but was it before (by default)?
+        raise_window(window=window_id0)
+
+        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_id1 = xsessionp.guess_window(
+            title_hint="^xclock$", windows=window_metadata1
+        )
+        assert window_id1
+
+        # After the next command window_id1 will be raised, but was it before (by default)?
+        raise_window(window=window_id1)
+
+        # Since no new windows were opened, we can be confident that it's us changing focus,
+        # and not the display manager ...
+        raise_window(window=window_id0)
+
+        # One more time, for good measure ...
+        raise_window(window=window_id1)
+    finally:
+        kill_all_xclock_instances()
+
+
 @pytest.mark.skip("The whole point of pytest is to be non-interactive.")
 def test_window_select(xsession: XSession):
     """Tests that a window can be graphically selected."""
     assert xsession.window_select()
-
-
-# TODO: def test_windowraise(xsession: XSession):
-
-
-# TODO: def test_windowreparent(xsession: XSession):

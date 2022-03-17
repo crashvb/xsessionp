@@ -480,7 +480,10 @@ def resolve_config(*, config: Union[Path, str]) -> Optional[Path]:
 @cli.command(short_help="Perform basic acceptance tests.")
 @click.pass_context
 def test(context: Context):
-    """Perform basic acceptance tests by launching two xclock instances on the current desktop at position (25, 25)."""
+    """
+    Perform basic acceptance tests by launching two xclock instances on the current desktop at position (25, 25) and
+    (25, 375).
+    """
     ctx = get_context_object(context=context)
     try:
         LOGGER.info("Python Version:\n\t%s\n", "\n\t".join(sys.version.split("\n")))

@@ -315,7 +315,7 @@ class XSessionp(XSession):
                     stderr=devnull,
                     stdout=devnull,
                 )
-            # Note: Lop variables in python are allocated from the heap =/
+            # Note: Loop variables in python are allocated from the heap =/
             config["windows"][i]["id"] = window["id"] = self.guess_window(
                 title_hint=title_hint, windows=potential_windows
             )
@@ -338,7 +338,7 @@ class XSessionp(XSession):
             # Position the window ...
             self.position_window(window=window)
 
-        # Activate a (single) window, after all windows are finished being placed ...
+        # Focus a (single) window, after all windows are finished being positioned ...
         # TODO: Reconcile focus and no_focus
         windows = [
             w

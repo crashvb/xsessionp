@@ -1048,7 +1048,6 @@ class XSession:
         with self.catch_error(check=check) as cerror, self.display_sync(sync=sync):
             window.map(onerror=cerror)
 
-    @window_type_safety
     def window_maximize(
         self,
         *,
@@ -1078,7 +1077,6 @@ class XSession:
             **kwargs,
         )
 
-    @window_type_safety
     def window_minimize(
         self,
         *,
@@ -1161,6 +1159,15 @@ class XSession:
             window=window,
             **kwargs,
         )
+
+    @window_type_safety
+    def window_raise(
+        self, *, check: bool = None, sync: bool = True, window: Union[int, Window]
+    ):
+        """Raises a window."""
+        LOGGER.debug("Raising window: %d", self._get_window_id(window))
+        with self.catch_error(check=check) as cerror, self.display_sync(sync=sync):
+            window.raise_window(onerror=cerror)
 
     def window_select(
         self, *, check: bool = None, delay: int = 1, retry: int = 3
