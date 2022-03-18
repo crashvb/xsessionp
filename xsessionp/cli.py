@@ -2,7 +2,6 @@
 
 """xsessionp command line interface."""
 
-import inspect
 import logging
 import json
 import os
@@ -189,8 +188,8 @@ def learn(context: Context, filter_environment: bool = True):
                     "desktop": desktop,
                     "environment": environment,
                     "geometry": f"{dimensions[0]}x{dimensions[1]}",
+                    "hints": {"title": f"^{escape(pattern=title)}$"},
                     "position": f"{position[0]},{position[1]}",
-                    "title_hint": f"^{escape(pattern=title)}$",
                 }
             ]
         }
@@ -207,18 +206,13 @@ def learn(context: Context, filter_environment: bool = True):
 def list_columns(*, context: Context, output: str = "plain"):
     """Lists valid column names for formatting."""
     ctx = get_context_object(context=context)
-    columns = ["id", "xname"]
-    for method in dir(ctx.xsessionp):
-        if (
-            method.startswith("get_window_")
-            and "window"
-            in inspect.getfullargspec(getattr(ctx.xsessionp, method)).kwonlyargs
-        ):
-            columns.append(method[11:])
+    columns = ctx.xsessionp.get_window_properties()
+    columns.extend(["id", "xname"])
+    columns = sorted(columns)
     if output == "json":
         print(json.dumps(obj=columns))
     elif output == "plain":
-        print("  ".join(sorted(columns)))
+        print("  ".join(columns))
     else:
         print(yaml.dump(data=columns))
 
@@ -285,14 +279,8 @@ def list_windows(
                 xsessionp_metadata = json.loads(xsessionp_metadata)
                 row.append(xsessionp_metadata["name"])
             else:
-                value = "-"
-                try:
-                    method = getattr(ctx.xsessionp, f"get_window_{fmt.lower()}")
-                    result = method(window=window)
-                    if result is not None:
-                        value = str(result)
-                except:  # pylint: disable=bare-except
-                    LOGGER.debug("Error while formatting: %s", fmt)
+                value = ctx.xsessionp.get_window_property(name=fmt, window=window)
+                value = str(value) if value is not None else "-"
                 row.append(value)
         if row:
             rows.append(row)
@@ -506,16 +494,17 @@ def test(context: Context):
                     {
                         "command": "xclock",
                         "geometry": "300x300",
+                        "hints": {"title": r"^xclock$"},
                         "focus": True,
                         "position": "25,25",
                         "shell": True,
-                        "title_hint": r"^xclock$",
                     },
                     {
                         "command": ["xclock", "-digital"],
                         "geometry": "300x40",
+                        "hint_method": "OR",
+                        "hints": {"class": r"^xclock$", "title": r"^xclock$"},
                         "position": "25,375",
-                        "title_hint": r"^xclock$",
                     },
                 ],
             }

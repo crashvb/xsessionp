@@ -40,9 +40,10 @@ windows:
   - --new-window
   focus: true
   geometry: 926x656
+  hints:
+    title: ^Unsaved Document.*
   position: 166,492
   # Regular expression to help locate the window
-  title_hint: ^Unsaved Document.*
 - command:
   - /usr/bin/gnome-terminal
   - --command=tmux
@@ -57,10 +58,13 @@ windows:
     foo: bar
     asdf: qwer
   geometry: 1174x710
+  hint_method: OR
+  hints:
+    class: Gnome-terminal
+    title: Terminal
   position: 213,134
   shell: true
   start_directory: /tmp
-  title_hint: Terminal
 ```
 
 Configurations can be listed using the <tt>ls</tt> command:

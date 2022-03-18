@@ -2,6 +2,7 @@
 
 """A declarative window instantiation utility for x11 sessions, heavily inspired by tmuxp."""
 
+import inspect
 import json
 import logging
 import os
@@ -9,11 +10,12 @@ import re
 import subprocess
 import sys
 
+from enum import Enum
 from multiprocessing import Process
 from pathlib import Path
 from re import Pattern
 from time import sleep
-from typing import cast, Dict, List, NamedTuple, Optional, TypedDict, Union
+from typing import Any, cast, Dict, List, Optional, TypedDict, Union
 
 import yaml
 
@@ -33,6 +35,13 @@ XSESSION = None
 XSESSIONP_METADATA = "_XSESSIONP_METADATA"
 
 
+class HintMethod(Enum):
+    """Boolean method used to relate hint criteria."""
+
+    AND = 0
+    OR = 1
+
+
 class TypingWindowConfiguration(TypedDict):
     # pylint: disable=missing-class-docstring
     id: Optional[int]  # Should only be assigned internally
@@ -44,6 +53,8 @@ class TypingWindowConfiguration(TypedDict):
     environment: Optional[Dict[str, str]]
     focus: Optional[bool]
     geometry: Optional[str]
+    hint_method: Optional[str]
+    hints: Optional[Dict[str, str]]
     name: Optional[str]
     position: Optional[str]
     shell: Optional[bool]
@@ -51,13 +62,6 @@ class TypingWindowConfiguration(TypedDict):
     start_directory: Optional[str]
     start_timeout: Optional[int]
     tile: Optional[str]
-    title_hint: Optional[str]
-
-
-class TypingWindowMetadata(NamedTuple):
-    # pylint: disable=missing-class-docstring
-    id: int
-    name: str
 
 
 class XSessionp(XSession):
@@ -98,11 +102,39 @@ class XSessionp(XSession):
         """Generates a predictable name from a given set of context parameters."""
         return f"{path}:window[{index}]:{get_uptime()}"
 
+    def get_window_properties(self) -> List[str]:
+        """Retrieves the list of valid property names that can be retrieved from a window."""
+        result = []
+        for method in dir(self):
+            if (
+                method.startswith("get_window_")
+                and "window" in inspect.getfullargspec(getattr(self, method)).kwonlyargs
+            ):
+                result.append(method[11:])
+        return result
+
+    def get_window_property(
+        self, *, check: bool = None, name: str, window: Union[int, Window]
+    ) -> Optional[Any]:
+        """Retrieves a given property from a window by name using introspection."""
+        try:
+            method = getattr(self, f"get_window_{name.lower()}", None)
+            if method:
+                return method(window=window)
+        except:  # pylint: disable=bare-except
+            if self._get_check(check=check):
+                LOGGER.error(
+                    'Unable to retrieve property "%s" from window: %s', name, window
+                )
+                raise
+        return None
+
     def guess_window(
         self,
         *,
         sane: bool = True,
-        title_hint: str,
+        hint_method: HintMethod = HintMethod.AND,
+        hints: Dict[str, Pattern],
         windows: List[Window],
     ) -> Optional[int]:
         # pylint: disable=protected-access
@@ -112,9 +144,10 @@ class XSessionp(XSession):
             return self.get_window_state(check=False, window=win) is not None
 
         LOGGER.debug(
-            "Guessing against %d windows using title_hint: %s",
+            "Guessing against %d windows using hints (method: %s):\n%s",
             len(windows),
-            title_hint,
+            hint_method.name,
+            "\n".join([f"{k} : {v.pattern}" for k, v in hints.items()]),
         )
         if not windows:
             return None
@@ -144,33 +177,43 @@ class XSessionp(XSession):
         #       in the first place, when only the child process knows it?
         #       (disk?, named pipes?)
 
-        # If we have hint, use it; otherwise, try looking for things with ANY title ...
-        pattern = re.compile(title_hint)
-        guesses = []
+        # Try to match based on hints provided ...
+        matches = []
         for window in windows:
             try:
-                name = self.get_window_name(check=False, window=window)
-                if name is not None and pattern.match(name):
-                    guesses.append(TypingWindowMetadata(id=window.id, name=name))
+                found = True
+                for name, pattern in hints.items():
+                    value = self.get_window_property(
+                        check=False, name=name, window=window
+                    )
+                    if value is not None:
+                        found &= pattern.match(value)
+                        if found and hint_method == HintMethod.OR:
+                            break
+                    elif hint_method == HintMethod.AND:
+                        found = False
+                        break
+
+                if found:
+                    matches.append(window.id)
             except BadWindow:
                 # Ignore state changes during traversal
                 ...
 
-        if not guesses:
-            LOGGER.warning("No matching titles; try relaxing 'title_hint'!")
+        if not matches:
+            LOGGER.warning("No matching windows; try relaxing constraints!")
             return None
-        if len(guesses) == 1:
-            LOGGER.debug("Found matching title: %s", guesses[0].name)
-            return guesses[0].id
+        if len(matches) == 1:
+            LOGGER.debug("Found matching window: %s", matches[0])
+            return matches[0]
 
         LOGGER.warning(
-            "Too many matching titles: %d; try constraining 'title_hint'!", len(guesses)
+            "Too many matching windows: %d; try tightening constrains!", len(matches)
         )
-        # ... it should still be better to use things with titles ...
 
         LOGGER.debug("Best effort at an ID-based match ...")
         # The greater the id, the later the window was created?!? ¯\_(ツ)_/¯
-        return sorted(guesses, key=lambda x: x.id, reverse=True)[0].id
+        return sorted(matches, reverse=True)[0]
 
     @staticmethod
     def inherit_globals(
@@ -296,10 +339,17 @@ class XSessionp(XSession):
             if self.key_enabled(key="start_directory", window=window):
                 start_directory = window["start_directory"]
 
-            # Construct: title_hint ...
-            title_hint = r"^.+$"
-            if self.key_enabled(key="title_hint", window=window):
-                title_hint = window["title_hint"]
+            # Construct: hint_method ...
+            hint_method = HintMethod.AND
+            if self.key_enabled(key="hint_method", window=window):
+                hint_method = HintMethod[str(window["hint_method"]).upper()]
+
+            # Construct: hints ...
+            hints = {}
+            if self.key_enabled(key="hints", window=window):
+                hints = window["hints"]
+            hints = hints if hints else {"title": r"^.+$"}
+            hints = {str(k).lower(): re.compile(v) for k, v in hints.items()}
 
             # TODO: Check to see if a window already exists with the "name" attribute ...
 
@@ -317,7 +367,7 @@ class XSessionp(XSession):
                 )
             # Note: Loop variables in python are allocated from the heap =/
             config["windows"][i]["id"] = window["id"] = self.guess_window(
-                title_hint=title_hint, windows=potential_windows
+                hint_method=hint_method, hints=hints, windows=potential_windows
             )
             LOGGER.debug("Guessed window[%s] ID: %s", i, window["id"])
             if window["id"] is None:

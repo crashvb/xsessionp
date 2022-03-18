@@ -953,7 +953,7 @@ class XSession:
 
         def desktop_is_active(attempt: int):
             LOGGER.debug(
-                "Waiting for desktop to be active (try #%d): %s", attempt, desktop
+                "Waiting for desktop to be active (try: %d): %s", attempt, desktop
             )
             desktop_active = self.get_desktop_active()
             if desktop == desktop_active:
@@ -971,7 +971,7 @@ class XSession:
 
         def window_is_active(attempt: int):
             LOGGER.debug(
-                "Waiting for window to be active (try #%d): %s", attempt, window_id
+                "Waiting for window to be active (try: %d): %s", attempt, window_id
             )
             window_id_active = self._get_window_id(window=self.get_window_active())
             if window_id == window_id_active:
@@ -990,7 +990,7 @@ class XSession:
 
         def window_is_focused(attempt: int):
             LOGGER.debug(
-                "Waiting for window to be focused (try #%d): %s", attempt, window_id
+                "Waiting for window to be focused (try: %d): %s", attempt, window_id
             )
             window_id_focused = self._get_window_id(window=self.get_window_active())
             if window_id == window_id_focused:
@@ -1009,7 +1009,7 @@ class XSession:
 
         def window_is_visible(attempt: int):
             LOGGER.debug(
-                "Waiting for window to be visible (try #%d): %s",
+                "Waiting for window to be visible (try: %d): %s",
                 attempt,
                 self._get_window_id(window=window),
             )

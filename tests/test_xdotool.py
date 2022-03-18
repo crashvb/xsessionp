@@ -38,7 +38,11 @@ from xsessionp.xdotool import (
     windowunmap,
 )
 
-from .testutils import kill_all_xclock_instances, QUASI_DETERMINISTIC_DELAY
+from .testutils import (
+    get_xclock_hints,
+    kill_all_xclock_instances,
+    QUASI_DETERMINISTIC_DELAY,
+)
 
 
 LOGGER = logging.getLogger(__name__)
@@ -165,7 +169,7 @@ def test_windowactivate(xsessionp: XSessionp):
 
         window_metadata0 = xsessionp.launch_command(args=["xclock"])
         window_id0 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata0
+            hints=get_xclock_hints(), windows=window_metadata0
         )
         assert window_id0
 
@@ -174,7 +178,7 @@ def test_windowactivate(xsessionp: XSessionp):
 
         window_metadata1 = xsessionp.launch_command(args=["xclock"])
         window_id1 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata1
+            hints=get_xclock_hints(), windows=window_metadata1
         )
         assert window_id1
 
@@ -212,7 +216,7 @@ def test_windowfocus(xsessionp: XSessionp):
 
         window_metadata0 = xsessionp.launch_command(args=["xclock"])
         window_id0 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata0
+            hints=get_xclock_hints(), windows=window_metadata0
         )
         assert window_id0
 
@@ -221,7 +225,7 @@ def test_windowfocus(xsessionp: XSessionp):
 
         window_metadata1 = xsessionp.launch_command(args=["xclock"])
         window_id1 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata1
+            hints=get_xclock_hints(), windows=window_metadata1
         )
         assert window_id1
 
@@ -322,7 +326,7 @@ def test_windowraise(xsessionp: XSessionp):
 
         window_metadata0 = xsessionp.launch_command(args=["xclock"])
         window_id0 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata0
+            hints=get_xclock_hints(), windows=window_metadata0
         )
         assert window_id0
 
@@ -331,7 +335,7 @@ def test_windowraise(xsessionp: XSessionp):
 
         window_metadata1 = xsessionp.launch_command(args=["xclock"])
         window_id1 = xsessionp.guess_window(
-            title_hint="^xclock$", windows=window_metadata1
+            hints=get_xclock_hints(), windows=window_metadata1
         )
         assert window_id1
 

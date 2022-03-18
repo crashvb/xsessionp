@@ -4,10 +4,13 @@
 
 import logging
 import os
+import re
 import subprocess
 
 from contextlib import contextmanager
+from re import Pattern
 from time import sleep
+from typing import Dict
 
 
 LOGGER = logging.getLogger(__name__)
@@ -19,6 +22,11 @@ QUASI_DETERMINISTIC_DELAY = 2
 def allow_xserver_to_sync():
     """Attempt to allow the X11 server to process events."""
     sleep(QUASI_DETERMINISTIC_DELAY)
+
+
+def get_xclock_hints() -> Dict[str, Pattern]:
+    """Retrieves hints to match an xclock window."""
+    return {"title": re.compile(r"^xclock$")}
 
 
 def kill_all_xclock_instances():

@@ -13,7 +13,11 @@ from _pytest.logging import LogCaptureFixture
 
 from xsessionp import Muffin, NET_WM_STATE_TILED, XSessionp
 
-from .testutils import allow_xserver_to_sync, kill_all_xclock_instances
+from .testutils import (
+    allow_xserver_to_sync,
+    get_xclock_hints,
+    kill_all_xclock_instances,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -49,6 +53,25 @@ def test_get_window_manager_name(xsessionp: XSessionp):
 def test_generate_name(xsessionp: XSessionp):
     """Tests that the name of the window manager can be retrieved."""
     assert xsessionp.generate_name(index=123, path=Path(f"/{time()}"))
+
+
+def test_get_window_properties(xsessionp: XSessionp):
+    """Tests that a list of valid properties can be retrieved."""
+    properties = xsessionp.get_window_properties()
+    assert properties
+    assert "pid" in properties
+    assert all(x not in properties for x in ["id", "xname"])
+
+
+@pytest.mark.xclock
+def test_get_window_property(window_id: int, xsessionp: XSessionp):
+    """Tests that a property can be retrieved from a windows by name."""
+    name = xsessionp.get_window_property(name="name", window=window_id)
+    assert name
+    assert name == "xclock"
+
+    foobar = xsessionp.get_window_property(check=False, name="foobar", window=window_id)
+    assert foobar is None
 
 
 def test_inherit_global(xsessionp: XSessionp):
@@ -103,7 +126,7 @@ def test_launch_command_guess_window(xsessionp: XSessionp):
     try:
         potential_windows = xsessionp.launch_command(args=["xclock"])
         window_id = xsessionp.guess_window(
-            title_hint="^xclock$", windows=potential_windows
+            hints=get_xclock_hints(), windows=potential_windows
         )
         assert window_id
     finally:

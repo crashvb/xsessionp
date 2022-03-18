@@ -4,11 +4,13 @@
 
 """Configures execution of pytest."""
 
+import re
+
 import pytest
 
 from xsessionp import Muffin, XSession, XSessionp
 
-from .testutils import kill_all_xclock_instances
+from .testutils import get_xclock_hints, kill_all_xclock_instances
 
 
 def pytest_addoption(parser):
@@ -53,7 +55,7 @@ def window_id(xsessionp: XSessionp) -> int:
     """Provides the window ID of a launched xclock instance."""
     window_metadata = xsessionp.launch_command(args=["xclock"])
     try:
-        yield xsessionp.guess_window(title_hint="^xclock$", windows=window_metadata)
+        yield xsessionp.guess_window(hints=get_xclock_hints(), windows=window_metadata)
     finally:
         kill_all_xclock_instances()
 
