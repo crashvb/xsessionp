@@ -55,22 +55,24 @@ def test_generate_name(xsessionp: XSessionp):
     assert xsessionp.generate_name(index=123, path=Path(f"/{time()}"))
 
 
-def test_get_window_properties(xsessionp: XSessionp):
+def test_get_window_properties_xsp(xsessionp: XSessionp):
     """Tests that a list of valid properties can be retrieved."""
-    properties = xsessionp.get_window_properties()
+    properties = xsessionp.get_window_properties_xsp()
     assert properties
     assert "pid" in properties
     assert all(x not in properties for x in ["id", "xname"])
 
 
 @pytest.mark.xclock
-def test_get_window_property(window_id: int, xsessionp: XSessionp):
+def test_get_window_property_xsp(window_id: int, xsessionp: XSessionp):
     """Tests that a property can be retrieved from a windows by name."""
-    name = xsessionp.get_window_property(name="name", window=window_id)
+    name = xsessionp.get_window_property_xsp(name="name", window=window_id)
     assert name
     assert name == "xclock"
 
-    foobar = xsessionp.get_window_property(check=False, name="foobar", window=window_id)
+    foobar = xsessionp.get_window_property_xsp(
+        check=False, name="foobar", window=window_id
+    )
     assert foobar is None
 
 

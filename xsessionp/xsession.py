@@ -58,6 +58,7 @@ from .ewmh import (
     NET_SUPPORTING_WM_CHECK,
     NET_VIRTUAL_ROOTS,
     NET_WM_ALLOWED_ACTIONS,
+    NET_WM_CLASS,
     NET_WM_DESKTOP,
     NET_WM_NAME,
     NET_WM_PID,
@@ -69,9 +70,10 @@ from .ewmh import (
     NET_WORKAREA,
     SOURCE_PAGER,
 )
-from .icccm import WM_CHANGE_STATE, WM_NAME
+from .icccm import WM_CHANGE_STATE, WM_CLASS, WM_NAME
 
 LOGGER = logging.getLogger(__name__)
+XSESSION_ENCODING = "latin-1"
 
 
 def get_uptime() -> int:
@@ -115,10 +117,15 @@ class XSession:
     # pylint: disable=too-many-public-methods
     """Interacts with X11 window managers."""
 
+    def __del__(self):
+        if self.__dict__["display"] is not None:
+            self.__dict__["display"].close()
+            del self.__dict__["display"]
+
     def __getattr__(self, item):
         if str(item).lower().startswith("_net_"):
             atom = self._get_supported_atom(atom=item)
-            return self._get_property(atom=atom, check=self.__dict__["check"])
+            return self.get_window_property(atom=atom, check=self.__dict__["check"])
         return self.__dict__[item]
 
     def __init__(self, check: bool = True):
@@ -150,7 +157,7 @@ class XSession:
 
         if not data_format:
             if property_type == STRING:
-                data = data.encode("latin-1")
+                data = data.encode(XSESSION_ENCODING)
                 data_format = 8
             else:
                 data_format = 32
@@ -175,42 +182,7 @@ class XSession:
         """Retrieves the propagated value of the check parameter."""
         return self.check if check is None else check
 
-    @lru_cache(maxsize=None, typed=True)
-    def _get_supported_atom(self, atom: Union[int, str], check: bool = None) -> int:
-        """Retrieves a supported atom or raises an exception."""
-        if NET_SUPPORTED not in self.__dict__:
-            self.__dict__[NET_SUPPORTED] = list(self._get_property(atom=NET_SUPPORTED))
-        atom = self._get_atom(atom=atom, check=check)
-        if atom not in self.__dict__[NET_SUPPORTED]:
-            raise KeyError(f"Unsupported atom: {atom}")
-        return atom
-
-    def _get_window(self, *, check: bool = None, window: Union[int, Window]) -> Window:
-        """Retrieves a window (object) from a given window or window ID."""
-        if isinstance(window, Window):
-            return window
-        return self.get_window_by_id(check=check, window_id=window)
-
-    @staticmethod
-    def _get_window_id(window: Union[int, Window]) -> Window:
-        """Retrieves the ID of a window (int) from a given window or window ID."""
-        return window.id if isinstance(window, Window) else window
-
     def _get_property(
-        self,
-        *,
-        atom: Union[int, str],
-        check: bool = None,
-        property_type: int = AnyPropertyType,
-        window: Union[int, Window] = None,
-    ) -> Optional[Any]:
-        """Retrieves a property from a given window."""
-        get_property = self._get_property_raw(
-            atom=atom, check=check, property_type=property_type, window=window
-        )
-        return get_property.value if get_property is not None else get_property
-
-    def _get_property_raw(
         self,
         *,
         atom: Union[int, str],
@@ -223,13 +195,39 @@ class XSession:
         if window is None:
             window = self.get_window_root()
         window = self._get_window(check=check, window=window)
-        result = window.get_full_property(property=atom, property_type=property_type)
-        if check and not result:
-            # TODO: Do we also need to check result.error?
-            raise RuntimeError(
-                f"Unable to retrieve property {str(atom)} from window: {self._get_window_id(window)}"
+        try:
+            result = window.get_full_property(
+                property=atom, property_type=property_type
             )
-        return result
+            # TODO: Do we also need to check result.error?
+            return result
+        except XError:
+            if check:
+                LOGGER.error(
+                    "Unable to retrieve property %s from window: %s",
+                    str(atom),
+                    self._get_window_id(window),
+                )
+                raise
+        return None
+
+    @lru_cache(maxsize=None, typed=True)
+    def _get_supported_atom(self, atom: Union[int, str], check: bool = None) -> int:
+        """Retrieves a supported atom or raises an exception."""
+        if NET_SUPPORTED not in self.__dict__:
+            self.__dict__[NET_SUPPORTED] = list(
+                self.get_window_property(atom=NET_SUPPORTED)
+            )
+        atom = self._get_atom(atom=atom, check=check)
+        if atom not in self.__dict__[NET_SUPPORTED]:
+            raise KeyError(f"Unsupported atom: {atom}")
+        return atom
+
+    def _get_window(self, *, check: bool = None, window: Union[int, Window]) -> Window:
+        """Retrieves a window (object) from a given window or window ID."""
+        if isinstance(window, Window):
+            return window
+        return self.get_window_by_id(check=check, window_id=window)
 
     @window_type_safety
     def _get_window_geometry(
@@ -247,6 +245,11 @@ class XSession:
             if self._get_check(check=check):
                 raise
         return None
+
+    @staticmethod
+    def _get_window_id(window: Union[int, Window]) -> Window:
+        """Retrieves the ID of a window (int) from a given window or window ID."""
+        return window.id if isinstance(window, Window) else window
 
     def _remove_property(
         self,
@@ -356,6 +359,7 @@ class XSession:
         check: bool = None,
         matcher: Callable[[Window], bool],
         max_results: int = None,
+        prune_matches: bool = True,
         window: Union[int, Window],
     ) -> List[Window]:
         """Traverse children looking for matches."""
@@ -366,11 +370,12 @@ class XSession:
                 win = stack.pop(0)
                 try:
                     # Do not continue to search the children of a match
-                    if matcher(win):
+                    match = matcher(win)
+                    if match:
                         result.append(win)
                         if max_results and len(result) == max_results:
                             break
-                    else:
+                    if not match or not prune_matches:
                         stack.extend(win.query_tree().children)
                 except BadWindow:
                     # Ignore state changes during traversal
@@ -388,6 +393,7 @@ class XSession:
         check: bool = None,
         matcher: Callable[[Window], bool],
         max_results: int = None,
+        prune_matches: bool = True,
         window: Union[int, Window],
         window_root: Union[int, Window] = None,
     ) -> List[Window]:
@@ -400,11 +406,12 @@ class XSession:
             while window.id != window_root.id:
                 try:
                     parent = window.query_tree().parent
-                    if matcher(parent):
+                    match = matcher(parent)
+                    if match:
                         result.append(parent)
                         if max_results and len(result) == max_results:
                             break
-                    else:
+                    if not match or not prune_matches:
                         window = parent
                 except BadWindow:
                     # Ignore state changes during traversal
@@ -537,7 +544,7 @@ class XSession:
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the allowed actions for a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_ALLOWED_ACTIONS,
             check=check,
             property_type=AnyPropertyType,
@@ -559,11 +566,37 @@ class XSession:
                 raise
         return None
 
+    def get_window_class(
+        self,
+        *,
+        check: bool = None,
+        encoding: str = XSESSION_ENCODING,
+        window: Union[int, Window],
+    ) -> Optional[List[str]]:
+        """Retrieves the class of a given window."""
+        for atom in [NET_WM_CLASS, WM_CLASS]:
+            result = None
+            try:
+                result = self.get_window_property(
+                    atom=atom, check=False, property_type=AnyPropertyType, window=window
+                )
+            except BadAtom:
+                ...
+            if result is not None:
+                return (
+                    result.decode(encoding).split("\x00")[:-1]
+                    if result is not None
+                    else None
+                )
+        if self._get_check(check=check):
+            raise RuntimeError(f"Unable to retrieve class of window: {window}")
+        return None
+
     def get_window_desktop(
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[int]:
         """Retrieves the desktop containing a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_DESKTOP,
             check=check,
             property_type=AnyPropertyType,
@@ -608,13 +641,49 @@ class XSession:
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the desktop containing a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_FRAME_EXTENTS,
             check=check,
             property_type=AnyPropertyType,
             window=window,
         )
         return list(result) if result is not None else None
+
+    def get_window_manager(self, check: bool = None) -> Optional[Window]:
+        """Retrieves the window manager child window."""
+        result = self.get_window_property(atom=NET_SUPPORTING_WM_CHECK, check=check)
+        return (
+            self.get_window_by_id(window_id=int(result[0]))
+            if result is not None
+            else None
+        )
+
+    def get_window_name(
+        self,
+        *,
+        check: bool = None,
+        encoding: str = XSESSION_ENCODING,
+        window: Union[int, Window],
+    ) -> Optional[str]:
+        """Retrieves the name of a given window."""
+        for atom in [NET_WM_NAME, WM_NAME]:
+            result = self.get_window_property(
+                atom=atom, check=False, property_type=AnyPropertyType, window=window
+            )
+            if result is not None:
+                return result.decode(encoding)
+        if self._get_check(check=check):
+            raise RuntimeError(f"Unable to retrieve name of window: {window}")
+        return None
+
+    def get_window_pid(
+        self, *, check: bool = None, window: Union[int, Window]
+    ) -> Optional[int]:
+        """Retrieves the process ID of a given window."""
+        result = self.get_window_property(
+            atom=NET_WM_PID, check=check, property_type=AnyPropertyType, window=window
+        )
+        return int(result[0]) if result is not None else None
 
     @window_type_safety
     def get_window_position(
@@ -634,37 +703,25 @@ class XSession:
             position_y += get_geometry.y
         return [position_x, position_y]
 
-    def get_window_manager(self, check: bool = None) -> Optional[Window]:
-        """Retrieves the window manager child window."""
-        result = self._get_property(atom=NET_SUPPORTING_WM_CHECK, check=check)
-        return (
-            self.get_window_by_id(window_id=int(result[0]))
-            if result is not None
-            else None
-        )
+    @window_type_safety
+    def get_window_properties(self, *, window: Union[int, Window]) -> List[int]:
+        # pylint: disable=no-self-use
+        """Retrieves the list of properties from a given window."""
+        return window.list_properties()
 
-    def get_window_name(
-        self, *, check: bool = None, encoding: str = "utf-8", window: Union[int, Window]
-    ) -> Optional[str]:
-        """Retrieves the name of a given window."""
-        for atom in [NET_WM_NAME, WM_NAME]:
-            result = self._get_property(
-                atom=atom, check=False, property_type=AnyPropertyType, window=window
-            )
-            if result is not None:
-                return result.decode(encoding)
-        if self._get_check(check=check):
-            raise RuntimeError(f"Unable to retrieve name of window: {window}")
-        return None
-
-    def get_window_pid(
-        self, *, check: bool = None, window: Union[int, Window]
-    ) -> Optional[int]:
-        """Retrieves the process ID of a given window."""
-        result = self._get_property(
-            atom=NET_WM_PID, check=check, property_type=AnyPropertyType, window=window
+    def get_window_property(
+        self,
+        *,
+        atom: Union[int, str],
+        check: bool = None,
+        property_type: int = AnyPropertyType,
+        window: Union[int, Window] = None,
+    ) -> Optional[Any]:
+        """Retrieves a property from a given window."""
+        get_property = self._get_property(
+            atom=atom, check=check, property_type=property_type, window=window
         )
-        return int(result[0]) if result is not None else None
+        return get_property.value if get_property is not None else None
 
     def get_window_root(self, *, screen_number: int = None) -> Window:
         """Retrieves the root window of a given screen."""
@@ -674,7 +731,7 @@ class XSession:
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the state(s) of a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_STATE,
             check=check,
             property_type=AnyPropertyType,
@@ -686,7 +743,7 @@ class XSession:
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[int]:
         """Retrieves the type of a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_WINDOW_TYPE,
             check=check,
             property_type=AnyPropertyType,
@@ -695,10 +752,14 @@ class XSession:
         return int(result) if result is not None else None
 
     def get_window_visible_name(
-        self, *, check: bool = None, encoding: str = "utf-8", window: Union[int, Window]
+        self,
+        *,
+        check: bool = None,
+        encoding: str = XSESSION_ENCODING,
+        window: Union[int, Window],
     ) -> Optional[str]:
         """Retrieves the visible name of a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_VISIBLE_NAME,
             check=check,
             property_type=AnyPropertyType,
@@ -708,7 +769,7 @@ class XSession:
 
     def get_workarea(self, *, check: bool = None) -> Optional[List[List[int]]]:
         """Retrieves the workarea(s) for all desktops."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WORKAREA, check=check, property_type=AnyPropertyType
         )
         if not result:
@@ -720,7 +781,7 @@ class XSession:
 
     def get_virtual_roots(self, *, check: bool = None) -> Optional[List[int]]:
         """Retrieves the list of virtual roots."""
-        result = self._get_property(atom=NET_VIRTUAL_ROOTS, check=check)
+        result = self.get_window_property(atom=NET_VIRTUAL_ROOTS, check=check)
         return list(result) if result is not None else None
 
     def search(
@@ -729,6 +790,7 @@ class XSession:
         check: bool = None,
         matcher: Callable[[Window], bool] = None,
         max_results: int = None,
+        prune_matches: bool = True,
         screen_number: int = None,
     ) -> Optional[List[Window]]:
         """Search for windows."""
@@ -736,11 +798,28 @@ class XSession:
         def match_all(*_) -> bool:
             return True
 
-        window_root = self.get_window_root(screen_number=screen_number)
-        matcher = matcher if matcher else match_all
-        return self._traverse_children(
-            check=check, matcher=matcher, max_results=max_results, window=window_root
+        result = []
+        screens = (
+            [screen_number]
+            if screen_number is not None
+            else range(0, self.get_screen_count())
         )
+
+        for screen in screens:
+            matcher = matcher if matcher else match_all
+            window_root = self.get_window_root(screen_number=screen)
+            # LOGGER.debug("Searching root: %s", self._get_window_id(window=window_root))
+            result.extend(
+                self._traverse_children(
+                    check=check,
+                    matcher=matcher,
+                    max_results=max_results,
+                    prune_matches=prune_matches,
+                    window=window_root,
+                )
+            )
+
+        return result
 
     def set_desktop_active(self, *, desktop: int):
         # pylint: disable=attribute-defined-outside-init,invalid-name

@@ -26,7 +26,7 @@ def allow_xserver_to_sync():
 
 def get_xclock_hints() -> Dict[str, Pattern]:
     """Retrieves hints to match an xclock window."""
-    return {"title": re.compile(r"^xclock$")}
+    return {"name": re.compile(r"^xclock$")}
 
 
 def kill_all_xclock_instances():

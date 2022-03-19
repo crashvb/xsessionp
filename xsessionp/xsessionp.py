@@ -33,6 +33,7 @@ LOGGER = logging.getLogger(__name__)
 XSESSION = None
 
 XSESSIONP_METADATA = "_XSESSIONP_METADATA"
+XSESSIONP_PREFIX = "xsp:"
 
 
 class HintMethod(Enum):
@@ -49,14 +50,15 @@ class TypingWindowConfiguration(TypedDict):
     command: Union[List, str]
     copy_environment: Optional[bool]
     desktop: Optional[int]
+    dimensions: Optional[str]
     disabled: Optional[bool]
     environment: Optional[Dict[str, str]]
     focus: Optional[bool]
-    geometry: Optional[str]
     hint_method: Optional[str]
     hints: Optional[Dict[str, str]]
     name: Optional[str]
     position: Optional[str]
+    search_delay: Optional[int]
     shell: Optional[bool]
     snapped: Optional[bool]
     start_directory: Optional[str]
@@ -90,7 +92,7 @@ class XSessionp(XSession):
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[str]:
         """Retrieves the desktop containing a given window."""
-        return self._get_property(
+        return self.get_window_property(
             atom=XSESSIONP_METADATA,
             check=check,
             property_type=AnyPropertyType,
@@ -102,8 +104,8 @@ class XSessionp(XSession):
         """Generates a predictable name from a given set of context parameters."""
         return f"{path}:window[{index}]:{get_uptime()}"
 
-    def get_window_properties(self) -> List[str]:
-        """Retrieves the list of valid property names that can be retrieved from a window."""
+    def get_window_properties_xsp(self) -> List[str]:
+        """Retrieves the list of valid property names that can be retrieved from a window using introspection."""
         result = []
         for method in dir(self):
             if (
@@ -113,7 +115,7 @@ class XSessionp(XSession):
                 result.append(method[11:])
         return result
 
-    def get_window_property(
+    def get_window_property_xsp(
         self, *, check: bool = None, name: str, window: Union[int, Window]
     ) -> Optional[Any]:
         """Retrieves a given property from a window by name using introspection."""
@@ -137,7 +139,7 @@ class XSessionp(XSession):
         hints: Dict[str, Pattern],
         windows: List[Window],
     ) -> Optional[int]:
-        # pylint: disable=protected-access
+        # pylint: disable=protected-access,too-many-branches
         """Attempts to isolate a single window from a list of potential matches."""
 
         def must_have_state(win: Window) -> bool:
@@ -183,11 +185,23 @@ class XSessionp(XSession):
             try:
                 found = True
                 for name, pattern in hints.items():
-                    value = self.get_window_property(
-                        check=False, name=name, window=window
-                    )
+                    if name == "id":
+                        value = self._get_window_id(window=window)
+                    elif name.startswith(XSESSIONP_PREFIX):
+                        xsessionp_metadata = self.get_window_xsessionp_metadata(
+                            window=window
+                        )
+                        xsessionp_metadata = json.loads(xsessionp_metadata)
+                        value = xsessionp_metadata.get(
+                            name[len(XSESSIONP_PREFIX) :], None
+                        )
+                    else:
+                        # TODO: get_window_property_xsp() or get_window_property() ... edge cases???
+                        value = self.get_window_property_xsp(
+                            check=False, name=name, window=window
+                        )
                     if value is not None:
-                        found &= pattern.match(value)
+                        found &= pattern.match(str(value)) is not None
                         if found and hint_method == HintMethod.OR:
                             break
                     elif hint_method == HintMethod.AND:
@@ -232,13 +246,13 @@ class XSessionp(XSession):
         return key in window and f"no_{key}" not in window
 
     def launch_command(
-        self, *, delay: int = 1, tries: int = 3, **kwargs
+        self, *, delay: int = 1, search_delay: float = 0, tries: int = 3, **kwargs
     ) -> List[Window]:
         """
         Executes a command and attempts to identify the window(s) that were created as a result.
         https://stackoverflow.com/a/13096649
         """
-        windows_before = self.search()
+        windows_before = self.search(prune_matches=False)
 
         def launcher(count: int = 0) -> Optional[Process]:
             """Nested process wrapper intended to orphan a child process."""
@@ -257,9 +271,12 @@ class XSessionp(XSession):
         process_launcher.terminate()
 
         result = []
+        if search_delay != 0.0:
+            LOGGER.debug("Delaying %s seconds ...", search_delay)
+            sleep(search_delay)
         for _ in range(tries):
             self.get_display().sync()
-            windows_after = self.search()
+            windows_after = self.search(prune_matches=False)
             result = [x for x in windows_after if x not in windows_before]
             if result:
                 break
@@ -329,16 +346,6 @@ class XSessionp(XSession):
             if self.key_enabled(key="environment", window=window):
                 env.update(window["environment"])
 
-            # Construct: shell ...
-            shell = False
-            if self.key_enabled(key="shell", window=window):
-                shell = bool(window["shell"])
-
-            # Construct: start_directory ...
-            start_directory = "/"
-            if self.key_enabled(key="start_directory", window=window):
-                start_directory = window["start_directory"]
-
             # Construct: hint_method ...
             hint_method = HintMethod.AND
             if self.key_enabled(key="hint_method", window=window):
@@ -351,6 +358,21 @@ class XSessionp(XSession):
             hints = hints if hints else {"title": r"^.+$"}
             hints = {str(k).lower(): re.compile(v) for k, v in hints.items()}
 
+            # Construct: search_delay ...
+            search_delay = 0
+            if self.key_enabled(key="search_delay", window=window):
+                search_delay = float(window["search_delay"])
+
+            # Construct: shell ...
+            shell = False
+            if self.key_enabled(key="shell", window=window):
+                shell = bool(window["shell"])
+
+            # Construct: start_directory ...
+            start_directory = "/"
+            if self.key_enabled(key="start_directory", window=window):
+                start_directory = window["start_directory"]
+
             # TODO: Check to see if a window already exists with the "name" attribute ...
 
             # Start the process, find the window ...
@@ -361,6 +383,7 @@ class XSessionp(XSession):
                     cwd=start_directory,
                     env=env,
                     preexec_fn=os.setpgrp(),
+                    search_delay=search_delay,
                     shell=shell,
                     stderr=devnull,
                     stdout=devnull,
@@ -407,9 +430,9 @@ class XSessionp(XSession):
         """Positions a window from a given configuration."""
         if self.key_enabled(key="desktop", window=window):
             self.set_window_desktop(desktop=window["desktop"], window=window["id"])
-        if self.key_enabled(key="geometry", window=window):
+        if self.key_enabled(key="dimensions", window=window):
             (width, height) = map(
-                int, re.split(pattern=r"x|,", string=window["geometry"])
+                int, re.split(pattern=r"x|,", string=window["dimensions"])
             )
             self.set_window_dimensions(height=height, width=width, window=window["id"])
         if self.key_enabled(key="position", window=window):

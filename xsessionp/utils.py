@@ -2,18 +2,19 @@
 
 """Utility classes."""
 
+import json
 import logging
 import re
 import subprocess
 import sys
 
+from enum import Enum
 from logging import Formatter
-from pathlib import Path
 from re import Pattern
-from typing import List, Union
+from typing import List
 
 import click
-import pkg_resources
+import yaml
 
 LOGGING_DEFAULT = 2
 
@@ -33,19 +34,12 @@ class CustomFormatter(Formatter):
         return f"\x1b{CustomFormatter.COLORS[record.levelno]}{super().format(record=record)}\x1b[0m"
 
 
-def get_path(path: Union[Path, str], name: str = __name__) -> Path:
-    """
-    Resolves the absolute path for a given relative path in reference to a file.
+class OutputFormat(Enum):
+    """Output serialization format"""
 
-    Args:
-        path: The relative path to be resolved.
-        name: The name of the file from which to resolve the relative path.
-
-    Returns:
-        Path: The absolute path.
-    """
-    top_package = name[: name.index(".")]
-    return Path(pkg_resources.resource_filename(top_package, path))
+    JSON = 0
+    PLAIN = 1
+    YAML = 2
 
 
 def logging_options(function):
@@ -83,6 +77,39 @@ def logging_options(function):
     )(function)
 
     return function
+
+
+def print_list(
+    *,
+    lst: List[str],
+    output_format: OutputFormat = OutputFormat.PLAIN,
+):
+    """Prints a table to stdout."""
+    if output_format == OutputFormat.JSON:
+        print(json.dumps(obj=lst))
+    elif output_format == OutputFormat.PLAIN:
+        print("  ".join(lst))
+    else:
+        print(yaml.dump(data=lst))
+
+
+def print_table(
+    *, output_format: OutputFormat = OutputFormat.PLAIN, table: List[List[str]]
+):
+    """Prints a table to stdout."""
+    if output_format == OutputFormat.JSON:
+        print(json.dumps(obj=table))
+    elif output_format == OutputFormat.PLAIN:
+        column_width = []
+        if table:
+            for i in range(0, len(table[0])):
+                column_width.append(max([len(row[i]) for row in table]))
+        for row in table:
+            for i, column in enumerate(row):
+                print(column.ljust(column_width[i]), end="  ")
+            print()
+    else:
+        print(yaml.dump(data=table))
 
 
 def run(**kwargs) -> str:

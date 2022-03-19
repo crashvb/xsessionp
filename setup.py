@@ -31,6 +31,7 @@ setup(
     entry_points="""
         [console_scripts]
         xsessionp=xsessionp.cli:cli
+        xsp=xsessionp.cli:cli
     """,
     extras_require={
         "dev": [
@@ -44,7 +45,7 @@ setup(
     },
     include_package_data=True,
     install_requires=["click", "flatten-dict", "python-xlib", "pyyaml"],
-    keywords="instantiation sessions window x11 xsession",
+    keywords="instantiation sessions window x11 xsession xsessionp xsp",
     license="Apache Software License",
     long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",

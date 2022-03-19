@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# pylint: disable=protected-access,redefined-outer-name
+# pylint: disable=protected-access,redefined-outer-name,too-many-lines
 
 """xsession tests."""
 
@@ -12,7 +12,7 @@ from random import randint
 import pytest
 
 from Xlib.display import Display
-from Xlib.error import BadAtom, BadWindow
+from Xlib.error import BadAtom
 from Xlib.xobject.drawable import Window
 from Xlib.X import IsUnmapped, IsViewable, NONE
 
@@ -252,6 +252,17 @@ def test_get_window_by_id(window_id: int, xsession: XSession):
 
 
 @pytest.mark.skipif(
+    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
+)
+@pytest.mark.xclock
+def test_get_window_class(window_id: int, xsession: XSession):
+    """Tests that the class can be retrieved for a window."""
+    classes = xsession.get_window_class(window=window_id)
+    assert classes
+    assert "xclock" in classes
+
+
+@pytest.mark.skipif(
     "TRAVIS" in os.environ,
     reason="xvfb failure: Unable to intern atom: _NET_WM_DESKTOP",
 )
@@ -329,6 +340,26 @@ def test_get_window_position(window_id: int, xsession: XSession):
     position = xsession.get_window_position(window=window_id)
     assert position
     assert len(position) == 2
+
+
+@pytest.mark.xclock
+def test_get_window_properties(window_id: int, xsessionp: XSessionp):
+    """Tests that a list of valid properties can be retrieved."""
+    properties = xsessionp.get_window_properties(window=window_id)
+    assert properties
+
+
+@pytest.mark.xclock
+def test_get_window_property(window_id: int, xsessionp: XSessionp):
+    """Tests that a property can be retrieved from a windows by name."""
+    properties = xsessionp.get_window_properties(window=window_id)
+    assert properties
+
+    value = xsessionp.get_window_property(atom=properties[0], window=window_id)
+    assert value
+
+    foobar = xsessionp.get_window_property(check=False, atom="foobar", window=window_id)
+    assert foobar is None
 
 
 def test_get_window_root(xsession: XSession):
@@ -595,7 +626,7 @@ def test_set_window_close(window_id: int, xsession: XSession):
     """Tests that a window can be closed."""
     xsession.set_window_close(window=window_id)
     allow_xserver_to_sync()
-    with pytest.raises(BadWindow):
+    with pytest.raises(RuntimeError):
         xsession.get_window_name(window=window_id)
 
 
@@ -797,7 +828,7 @@ def test_window_destroy(window_id: int, xsession: XSession):
     """Tests that a window can be destroyed."""
     xsession.window_destroy(window=window_id)
     allow_xserver_to_sync()
-    with pytest.raises(BadWindow):
+    with pytest.raises(RuntimeError):
         xsession.get_window_name(window=window_id)
 
 
@@ -806,7 +837,7 @@ def test_window_kill(window_id: int, xsession: XSession):
     """Tests that a window can be killed."""
     xsession.window_kill(window=window_id)
     allow_xserver_to_sync()
-    with pytest.raises(BadWindow):
+    with pytest.raises(RuntimeError):
         xsession.get_window_name(window=window_id)
 
 
@@ -953,6 +984,10 @@ def test_window_moveresize(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) == position1
 
 
+@pytest.mark.skipif(
+    "TRAVIS" in os.environ,
+    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
+)
 @pytest.mark.xclock
 def test_window_raise(xsessionp: XSessionp):
     """Tests that a window can be activated."""

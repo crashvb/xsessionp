@@ -41,7 +41,7 @@ windows:
   focus: true
   geometry: 926x656
   hints:
-    title: ^Unsaved Document.*
+    name: ^Unsaved Document.*
   position: 166,492
   # Regular expression to help locate the window
 - command:
@@ -61,7 +61,7 @@ windows:
   hint_method: OR
   hints:
     class: Gnome-terminal
-    title: Terminal
+    name: Terminal
   position: 213,134
   shell: true
   start_directory: /tmp

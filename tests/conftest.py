@@ -4,8 +4,6 @@
 
 """Configures execution of pytest."""
 
-import re
-
 import pytest
 
 from xsessionp import Muffin, XSession, XSessionp

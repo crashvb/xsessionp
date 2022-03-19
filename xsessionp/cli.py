@@ -9,7 +9,6 @@ import sys
 
 from pathlib import Path
 from re import escape, Pattern
-from shutil import which
 from tempfile import TemporaryDirectory
 from traceback import print_exception
 from typing import Generator, List, NamedTuple, Optional, Union
@@ -22,14 +21,15 @@ from click.core import Context
 from .utils import (
     LOGGING_DEFAULT,
     logging_options,
+    OutputFormat,
+    print_list,
+    print_table,
     run,
     set_log_levels,
     to_list_int,
     to_pattern,
 )
-from .xdotool import XDOTOOL
-from .xprop import XPROP
-from .xsessionp import XSessionp
+from .xsessionp import TypingWindowConfiguration, XSessionp, XSESSIONP_PREFIX
 
 EXTENSIONS = ["json", "yaml", "yml"]
 LOGGER = logging.getLogger(__name__)
@@ -125,6 +125,84 @@ def close_windows(context: Context, all: bool, desktop: int, target: str):
         sys.exit(1)
 
 
+@cli.command(name="dump-windows", short_help="Lists X11 window(s).")
+@click.option(
+    "-a",
+    "--all",
+    help="If specified, all windows will be listed, otherwise only those on the active desktop.",
+    is_flag=True,
+)
+@click.option(
+    "-c",
+    "--columns",
+    default="id,desktop,position,dimensions,name",
+    help="A comma-separated list of columns. Use --columns= for a list of valid columns.",
+    show_default=True,
+)
+@click.option(
+    "-n",
+    "--no-headers",
+    help="If specified, column headers will be omitted.",
+    is_flag=True,
+)
+@click.option(
+    "-o",
+    "--output",
+    help="Output format.",
+    default="plain",
+    type=click.Choice(["json", "plain", "yaml"], case_sensitive=False),
+)
+@click.pass_context
+def dump_windows(
+    context: Context, all: bool, columns: str, no_headers: bool, output: str
+):
+    # pylint: disable=protected-access,redefined-builtin,too-many-branches,too-many-locals
+    """
+    Lists X11 windows in a given format.
+
+    The output format can be specified as a colon-separated list of column names, each of which will be populated
+    from the corresponding xsessionp.get_window_<column>() method.
+    """
+    output = output.lower()
+    if columns == "":
+        list_columns(context=context, output=output)
+        return
+
+    ctx = get_context_object(context=context)
+    columns = [column for column in columns.split(",") if column]
+    desktop = ctx.xsessionp.get_desktop_active()
+    rows = []
+    windows = ctx.xsessionp.search(prune_matches=False)
+    for window in windows:
+        if not all and ctx.xsessionp.get_window_desktop(window=window) != desktop:
+            continue
+        row = []
+        for fmt in columns:
+            if fmt == "id":
+                value = ctx.xsessionp._get_window_id(window=window)
+            elif fmt.startswith(XSESSIONP_PREFIX):
+                xsessionp_metadata = ctx.xsessionp.get_window_xsessionp_metadata(
+                    window=window
+                )
+                value = None
+                if xsessionp_metadata:
+                    xsessionp_metadata = json.loads(xsessionp_metadata)
+                    value = xsessionp_metadata.get(fmt[len(XSESSIONP_PREFIX) :], None)
+            else:
+                value = ctx.xsessionp.get_window_property_xsp(
+                    check=False, name=fmt, window=window
+                )
+            value = str(value) if value is not None else "-"
+            row.append(value)
+        if row:
+            rows.append(row)
+
+    rows = sorted(rows, key=lambda x: x[0])
+    if not no_headers:
+        rows.insert(0, [column.upper() for column in columns])
+    print_table(output_format=OutputFormat[output.upper()], table=rows)
+
+
 @cli.command()
 @click.option(
     "--filter-environment/--no-filter-environment",
@@ -186,8 +264,8 @@ def learn(context: Context, filter_environment: bool = True):
                 {
                     "command": command,
                     "desktop": desktop,
+                    "dimensions": f"{dimensions[0]}x{dimensions[1]}",
                     "environment": environment,
-                    "geometry": f"{dimensions[0]}x{dimensions[1]}",
                     "hints": {"title": f"^{escape(pattern=title)}$"},
                     "position": f"{position[0]},{position[1]}",
                 }
@@ -204,20 +282,22 @@ def learn(context: Context, filter_environment: bool = True):
 
 
 def list_columns(*, context: Context, output: str = "plain"):
+    # pylint: disable=no-member
     """Lists valid column names for formatting."""
     ctx = get_context_object(context=context)
-    columns = ctx.xsessionp.get_window_properties()
-    columns.extend(["id", "xname"])
+    columns = ctx.xsessionp.get_window_properties_xsp()
+    columns.append("id")
+    columns.extend(
+        [
+            f"{XSESSIONP_PREFIX}{key}"
+            for key in TypingWindowConfiguration.__annotations__.keys()
+        ]
+    )
     columns = sorted(columns)
-    if output == "json":
-        print(json.dumps(obj=columns))
-    elif output == "plain":
-        print("  ".join(columns))
-    else:
-        print(yaml.dump(data=columns))
+    print_list(lst=columns, output_format=OutputFormat[output.upper()])
 
 
-@cli.command(name="list-windows", short_help="Lists discovered xsessionp window(s).")
+@cli.command(name="list-windows", short_help="Lists managed xsessionp window(s).")
 @click.option(
     "-a",
     "--all",
@@ -227,7 +307,7 @@ def list_columns(*, context: Context, output: str = "plain"):
 @click.option(
     "-c",
     "--columns",
-    default="id,xname,desktop,position,dimensions,name",
+    default=f"id,{XSESSIONP_PREFIX}name,desktop,position,dimensions,name",
     help="A comma-separated list of columns. Use --columns= for a list of valid columns.",
     show_default=True,
 )
@@ -263,7 +343,7 @@ def list_windows(
     ctx = get_context_object(context=context)
     columns = [column for column in columns.split(",") if column]
     desktop = ctx.xsessionp.get_desktop_active()
-    rows = [] if no_headers else [[column.upper() for column in columns]]
+    rows = []
     windows = ctx.xsessionp.find_xsessionp_windows()
     for window in windows:
         if not all and ctx.xsessionp.get_window_desktop(window=window) != desktop:
@@ -271,33 +351,26 @@ def list_windows(
         row = []
         for fmt in columns:
             if fmt == "id":
-                row.append(str(ctx.xsessionp._get_window_id(window=window)))
-            elif fmt == "xname":
+                value = ctx.xsessionp._get_window_id(window=window)
+            elif fmt.startswith(XSESSIONP_PREFIX):
                 xsessionp_metadata = ctx.xsessionp.get_window_xsessionp_metadata(
                     window=window
                 )
                 xsessionp_metadata = json.loads(xsessionp_metadata)
-                row.append(xsessionp_metadata["name"])
+                value = xsessionp_metadata.get(fmt[len(XSESSIONP_PREFIX) :], None)
             else:
-                value = ctx.xsessionp.get_window_property(name=fmt, window=window)
-                value = str(value) if value is not None else "-"
-                row.append(value)
+                value = ctx.xsessionp.get_window_property_xsp(
+                    check=False, name=fmt, window=window
+                )
+            value = str(value) if value is not None else "-"
+            row.append(value)
         if row:
             rows.append(row)
 
-    if output == "json":
-        print(json.dumps(obj=rows))
-    elif output == "plain":
-        column_width = []
-        if rows:
-            for i in range(0, len(columns)):
-                column_width.append(len(max([row[i] for row in rows], key=len)))
-        for row in rows:
-            for i, column in enumerate(row):
-                print(column.ljust(column_width[i]), end="  ")
-            print()
-    else:
-        print(yaml.dump(data=rows))
+    rows = sorted(rows, key=lambda x: x[0])
+    if not no_headers:
+        rows.insert(0, [column.upper() for column in columns])
+    print_table(output_format=OutputFormat[output.upper()], table=rows)
 
 
 @cli.command(short_help="Load xsessionp workspace(s).")
@@ -479,11 +552,6 @@ def test(context: Context):
             "Configuration Directories:\n\t%s\n",
             "\n\t".join([str(path) for path in get_config_dirs()]),
         )
-        LOGGER.info(
-            "Tool Location:\n\t%s\n\t%s\n",
-            which(XDOTOOL) or f"'{XDOTOOL}' not found!",
-            which(XPROP) or f"'{XPROP} not found!",
-        )
         LOGGER.info("Subprocess Test:\n\t%s\n", run(args="pwd"))
 
         with TemporaryDirectory() as tmpdir:
@@ -493,17 +561,17 @@ def test(context: Context):
                 "windows": [
                     {
                         "command": "xclock",
-                        "geometry": "300x300",
-                        "hints": {"title": r"^xclock$"},
+                        "dimensions": "300x300",
+                        "hints": {"name": r"^xclock$"},
                         "focus": True,
                         "position": "25,25",
                         "shell": True,
                     },
                     {
                         "command": ["xclock", "-digital"],
-                        "geometry": "300x40",
+                        "dimensions": "300x40",
                         "hint_method": "OR",
-                        "hints": {"class": r"^xclock$", "title": r"^xclock$"},
+                        "hints": {"class": r"^xclock$", "name": r"^xclock$"},
                         "position": "25,375",
                     },
                 ],

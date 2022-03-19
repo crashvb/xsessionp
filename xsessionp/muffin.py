@@ -280,7 +280,7 @@ class Muffin(XSession):
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the tile information for a given window."""
-        result = self._get_property(
+        result = self.get_window_property(
             atom=NET_WM_WINDOW_TILE_INFO,
             check=check,
             property_type=AnyPropertyType,
