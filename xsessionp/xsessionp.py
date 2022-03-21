@@ -47,7 +47,7 @@ class TypingWindowConfiguration(TypedDict):
     # pylint: disable=missing-class-docstring
     id: Optional[int]  # Should only be assigned internally
 
-    command: Union[List, str]
+    command: Union[list, str]
     copy_environment: Optional[bool]
     desktop: Optional[int]
     dimensions: Optional[str]
@@ -58,7 +58,7 @@ class TypingWindowConfiguration(TypedDict):
     hints: Optional[Dict[str, str]]
     name: Optional[str]
     position: Optional[str]
-    search_delay: Optional[int]
+    search_delay: Optional[float]
     shell: Optional[bool]
     snapped: Optional[bool]
     start_directory: Optional[str]
@@ -443,7 +443,7 @@ class XSessionp(XSession):
                 position_x=position_x, position_y=position_y, window=window["id"]
             )
         if self.key_enabled(key="tile", window=window):
-            snapped = None
+            snapped = False
             if self.key_enabled(key="snapped", window=window):
                 snapped = bool(window["snapped"])
 

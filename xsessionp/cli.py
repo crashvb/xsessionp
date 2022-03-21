@@ -91,7 +91,7 @@ def cli(
     is_flag=True,
 )
 @click.option("-d", "--desktop", help="The target desktop.", type=int)
-@click.option("-t", "--target", help="The target window name.")
+@click.option("-t", "--target", help="The target window xsp:name.")
 @click.pass_context
 def close_windows(context: Context, all: bool, desktop: int, target: str):
     # pylint: disable=redefined-builtin
@@ -116,6 +116,9 @@ def close_windows(context: Context, all: bool, desktop: int, target: str):
                 conditional = xsessionp_metadata["name"] == target
             if all != conditional:
                 ctx.xsessionp.set_window_close(window=window)
+                LOGGER.info(
+                    "Closed window: %s", ctx.xsessionp._get_window_id(window=window)
+                )
     except Exception as exception:  # pylint: disable=broad-except
         if ctx.verbosity > 0:
             logging.fatal(exception)
@@ -252,9 +255,9 @@ def learn(context: Context, filter_environment: bool = True):
                 ctx.xsessionp._get_window_id(window=window),
             )
 
-        # Title ...
-        title = ctx.xsessionp.get_window_name(window=window)
-        title = title if title else "title_capture_failed"
+        # Name ...
+        name = ctx.xsessionp.get_window_name(window=window)
+        name = name if name else "name_capture_failed"
 
         desktop = ctx.xsessionp.get_window_desktop(window=window)
         dimensions = ctx.xsessionp.get_window_dimensions(window=window)
@@ -266,12 +269,12 @@ def learn(context: Context, filter_environment: bool = True):
                     "desktop": desktop,
                     "dimensions": f"{dimensions[0]}x{dimensions[1]}",
                     "environment": environment,
-                    "hints": {"title": f"^{escape(pattern=title)}$"},
+                    "hints": {"name": f"^{escape(pattern=name)}$"},
                     "position": f"{position[0]},{position[1]}",
                 }
             ]
         }
-        LOGGER.info("\n%s", yaml.dump(data=template))
+        LOGGER.info("---\n%s", yaml.dump(data=template))
     except Exception as exception:  # pylint: disable=broad-except
         if ctx.verbosity > 0:
             logging.fatal(exception)
@@ -509,6 +512,10 @@ def reposition_windows(context: Context, all: bool, desktop: int, target: str):
                 conditional = xsessionp_metadata["name"] == target
             if all != conditional:
                 ctx.xsessionp.position_window(window=xsessionp_metadata)
+                LOGGER.info(
+                    "Repositioned window: %s",
+                    ctx.xsessionp._get_window_id(window=window),
+                )
     except Exception as exception:  # pylint: disable=broad-except
         if ctx.verbosity > 0:
             logging.fatal(exception)
@@ -570,8 +577,7 @@ def test(context: Context):
                     {
                         "command": ["xclock", "-digital"],
                         "dimensions": "300x40",
-                        "hint_method": "OR",
-                        "hints": {"class": r"^xclock$", "name": r"^xclock$"},
+                        "hints": {"name": r"^xclock$"},
                         "position": "25,375",
                     },
                 ],
