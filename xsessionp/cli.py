@@ -225,6 +225,10 @@ def learn(context: Context, filter_environment: bool = True):
     ctx = get_context_object(context=context)
     try:
         window = ctx.xsessionp.window_select()
+        if window is None:
+            LOGGER.info("Selection aborted.")
+            return
+
         pid = ctx.xsessionp.get_window_pid(window=window)
         if pid:
             LOGGER.debug("Inspecting pid: %s", pid)
@@ -251,13 +255,12 @@ def learn(context: Context, filter_environment: bool = True):
             command = "/bin/false"
             environment = {"environment_capture": "failed"}
             LOGGER.warning(
-                "Unable to determine process ID for window: %d",
+                "Unable to determine process ID for window: %s",
                 ctx.xsessionp._get_window_id(window=window),
             )
 
         # Name ...
         name = ctx.xsessionp.get_window_name(window=window)
-        name = name if name else "name_capture_failed"
 
         desktop = ctx.xsessionp.get_window_desktop(window=window)
         dimensions = ctx.xsessionp.get_window_dimensions(window=window)
