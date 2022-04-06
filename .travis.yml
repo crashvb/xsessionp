@@ -1,6 +1,8 @@
+after_success:
+- coveralls
 before_install:
 - sudo apt-get --yes install x11-apps xdotool
-dist: bionic
+dist: focal
 env:
 - TRAVIS=true
 install:
@@ -12,6 +14,6 @@ python:
 - "3.9"
 - "3.10"
 script:
-- make test-all
+- make test-coverage
 services:
 - xvfb

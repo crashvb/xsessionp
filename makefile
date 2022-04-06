@@ -2,7 +2,7 @@
 
 -include makefile.config
 
-.PHONY: black build clean default deploy deploy-test purge release sign test test-all test-all-verbose test-code test-package test-verbose venv .venv verify
+.PHONY: black build clean default deploy deploy-test purge release sign test test-all test-all-verbose test-code test-coverage test-package test-verbose venv .venv verify
 
 tmpdir:=$(shell mktemp --directory)
 
@@ -46,17 +46,19 @@ sign:
 	find dist -type f \( -iname "*.tar.gz" -o -iname "*.whl" \) -exec gpg --armor --detach-sig --local-user=$(keyid) --sign {} \;
 
 test:
-	python -m pytest --log-cli-level info $(args)
+	python -m pytest --log-cli-level=info $(args)
 
 test-all:
-	python -m pytest --log-cli-level info --allow-xclock-termination $(args)
+	python -m pytest --log-cli-level=info --allow-xclock-termination $(args)
 
 test-all-verbose:
-	python -m pytest --log-cli-level debug --allow-xclock-termination $(args)
+	python -m pytest --log-cli-level=debug --allow-xclock-termination $(args)
 
 test-code:
-	# Note: https://github.com/PyCQA/pylint/issues/289
 	python -m pylint --disable R0801 --max-line-length=120 xsessionp tests
+
+test-coverage:
+	coverage run --source=xsessionp -m pytest --log-cli-level=info --allow-xclock-termination $(args)
 
 test-package: build
 	python -m venv $(tmpdir)
