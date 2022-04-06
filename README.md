@@ -1,12 +1,12 @@
 # xsessionp
 
 [![pypi version](https://img.shields.io/pypi/v/xsessionp.svg)](https://pypi.org/project/xsessionp)
-[![build status](https://img.shields.io/travis/crashvb/xsessionp.svg)](https://app.travis-ci.com/github/crashvb/xsessionp)
+[![build status](https://github.com/crashvb/xsessionp/actions/workflows/main.yml/badge.svg)](https://github.com/crashvb/xsessionp/actions)
 [![coverage status](https://coveralls.io/repos/github/crashvb/xsessionp/badge.svg)](https://coveralls.io/github/crashvb/xsessionp)
-[![python versions](https://img.shields.io/pypi/pyversions/xsessionp.svg)](https://pypi.org/project/xsessionp)
+[![python versions](https://img.shields.io/pypi/pyversions/xsessionp.svg?logo=python&logoColor=FBE072)](https://pypi.org/project/xsessionp)
 [![linting](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![license](https://img.shields.io/github/license/crashvb/xsessionp.svg)](https://github.com/crashvb/xsessionp/blob/master/LICENSE.md)
+[![license](https://img.shields.io/github/license/crashvb/xsessionp.svg)](https://github.com/crashvb/xsessionp/blob/master/LICENSE)
 
 ## Overview
 
@@ -210,7 +210,7 @@ Boolean method by which <a href="#config_hints">hints</a> are evaluated.
 Distinguishing characteristics of the launched window that can be used to identify (guess) amongst otherwise ambiguous deltas.
 
 Deterministically identifying the X11 window(s) that are created when a process is launched is difficult. Often the `WM_PID` atom is missing, or doesn't align with the PID of the process that was invoked, for various reasons.
-As such, a listing of X11 windows is captured both *before* and *after* the process is executed, and the difference (delta) is used to guess the correct window. If the size of the delta is equal to 1, then it is assumed to correspond to the execute process.
+As such, a listing of X11 windows is captured both *before* and *after* the process is executed, and the difference (delta) is used to guess the correct window. If the size of the delta is equal to 1, then it is assumed to correspond to the executed process.
 If the size of the delta is greater than 1, then these hints are used to restrict which window is selected.
 
 Common hints include: `class`, `name`, `state`, and `type`. Hint values are compiled into regular expression patterns prior to evaluating.
@@ -221,7 +221,7 @@ Name (`xsp:name`) use to select windows when the configuration is loaded, and to
 
 #### <a name="config_position"></a> position (type: `str`)
 
-The position to assigned to the launched window. Values should take the form of `{x},{y}` or `{x},{y}`. If not provided, no positioning is performed.
+The position to assigned to the launched window. Values should take the form of `{x},{y}` or `{x}x{y}`. If not provided, no positioning is performed.
 
 #### <a name="config_search_delay"></a> search_delay (type: `float`, default: `0`)
 

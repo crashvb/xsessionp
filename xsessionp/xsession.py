@@ -212,7 +212,7 @@ class XSession:
                 raise
         return None
 
-    @lru_cache(maxsize=None, typed=True)
+    @lru_cache(typed=True)
     def _get_supported_atom(self, atom: Union[int, str], check: bool = None) -> int:
         """Retrieves a supported atom or raises an exception."""
         if NET_SUPPORTED not in self.__dict__:
@@ -451,7 +451,7 @@ class XSession:
         if sync:
             self.get_display().sync()
 
-    @lru_cache(maxsize=None, typed=True)
+    @lru_cache(typed=True)
     def get_atom(
         self, *, name: str, check: bool = None, only_if_exists: bool = True
     ) -> int:
@@ -461,7 +461,7 @@ class XSession:
             raise RuntimeError(f"Unable to intern atom: {name}")
         return atom
 
-    @lru_cache(maxsize=None, typed=True)
+    @lru_cache(typed=True)
     def get_atom_name(self, *, atom: int, check: bool = None) -> str:
         """Retrieves the string name corresponding to an atom by a given integer value."""
         name = None

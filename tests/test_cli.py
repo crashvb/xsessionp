@@ -29,16 +29,18 @@ def test_get_config_dirs(tmp_path_factory: TempPathFactory):
         tmpdir_xsessionp_configdir,
     ]:
         path.mkdir(parents=True)
+        assert path.exists()
     with temporary_environment_variable(
         key="HOME", value=str(tmpdir_home)
     ), temporary_environment_variable(
         key="XSESSIONP_CONFIGDIR", value=str(tmpdir_xsessionp_configdir)
     ):
-        config_dirs = list(get_config_dirs())
-        assert tmpdir_default0 in config_dirs
-        assert tmpdir_default1 in config_dirs
-        assert tmpdir_xdg_config_home not in config_dirs
-        assert tmpdir_xsessionp_configdir in config_dirs
+        with temporary_environment_variable(key="XDG_CONFIG_HOME", value=None):
+            config_dirs = list(get_config_dirs())
+            assert tmpdir_default0 in config_dirs
+            assert tmpdir_default1 in config_dirs
+            assert tmpdir_xdg_config_home not in config_dirs
+            assert tmpdir_xsessionp_configdir in config_dirs
         with temporary_environment_variable(
             key="XDG_CONFIG_HOME", value=str(tmpdir_xdg_config_home.parent)
         ):

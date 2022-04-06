@@ -40,12 +40,15 @@ def kill_all_xclock_instances():
 
 
 @contextmanager
-def temporary_environment_variable(key: str, value: str):
+def temporary_environment_variable(key: str, value: str = None):
     """Context manager to globally define the xdg configuration directory."""
     old = os.environ.get(key, None)
-    os.environ[key] = value
+    if value is None:
+        os.environ.pop(key, None)
+    else:
+        os.environ[key] = value
     yield None
     if old is not None:
         os.environ[key] = old
     else:
-        del os.environ[key]
+        os.environ.pop(key, None)

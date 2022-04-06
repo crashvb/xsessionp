@@ -566,6 +566,8 @@ def test_set_desktop_showing(xsession: XSession):
 
     # Find a desktop other than the current one ...
     showing_original = xsession.get_desktop_showing()
+    # Note: Some winodw managers (muffin) do not populate this atom until execute once by the user.
+    #       If this test fails with showing_original==None, try invoking manually once (Sup+D) ...
     assert showing_original is not None
     showing_target = 1 if showing_original == 0 else 0
     assert showing_target != showing_original
