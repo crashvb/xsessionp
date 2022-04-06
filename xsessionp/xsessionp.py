@@ -112,7 +112,9 @@ class XSessionp(XSession):
                 method.startswith("get_window_")
                 and "window" in inspect.getfullargspec(getattr(self, method)).kwonlyargs
             ):
-                result.append(method[11:])
+                name = method[11:]
+                if name not in ["property", "property_xsp"]:
+                    result.append(name)
         return result
 
     def get_window_property_xsp(

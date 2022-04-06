@@ -1,12 +1,16 @@
 # xsessionp
 
+[![pypi version](https://img.shields.io/pypi/v/xsessionp.svg)](https://pypi.org/project/xsessionp)
+[![build status](https://img.shields.io/travis/crashvb/xsessionp.svg)](https://app.travis-ci.com/github/crashvb/xsessionp)
+[![coverage status](https://coveralls.io/repos/github/crashvb/xsessionp/badge.svg)](https://coveralls.io/github/crashvb/xsessionp)
+[![python versions](https://img.shields.io/pypi/pyversions/xsessionp.svg)](https://pypi.org/project/xsessionp)
+[![linting](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
+[![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+[![license](https://img.shields.io/github/license/crashvb/xsessionp.svg)](https://github.com/crashvb/xsessionp/blob/master/LICENSE.md)
+
 ## Overview
 
 A declarative window instantiation utility for x11 sessions, heavily inspired by tmuxp.
-
-## Compatibility
-
-* Tested with python 3.8
 
 ## Installation
 ### From [pypi.org](https://pypi.org/project/xsessionp/)

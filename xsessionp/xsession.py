@@ -73,7 +73,8 @@ from .ewmh import (
 from .icccm import WM_CHANGE_STATE, WM_CLASS, WM_NAME
 
 LOGGER = logging.getLogger(__name__)
-XSESSION_ENCODING = "latin-1"
+# TODO: Reconcile why documentation states "latin-1", while python-xlib seems to return "utf-8"?!?
+XSESSION_ENCODING = "utf-8"
 
 
 def get_uptime() -> int:

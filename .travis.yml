@@ -1,5 +1,6 @@
 before_install:
-  - sudo apt-get --yes install x11-apps xdotool
+- sudo apt-get --yes install x11-apps xdotool
+dist: bionic
 env:
 - TRAVIS=true
 install:
@@ -7,7 +8,9 @@ install:
 - python -m pip install --editable .[dev]
 language: python
 python:
-- "3.8.3"
+- "3.8"
+- "3.9"
+- "3.10"
 script:
 - make test-all
 services:

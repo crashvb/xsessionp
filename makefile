@@ -56,7 +56,7 @@ test-all-verbose:
 
 test-code:
 	# Note: https://github.com/PyCQA/pylint/issues/289
-	python -m pylint --disable C0330,R0801 --max-line-length=120 xsessionp tests
+	python -m pylint --disable R0801 --max-line-length=120 xsessionp tests
 
 test-package: build
 	python -m venv $(tmpdir)

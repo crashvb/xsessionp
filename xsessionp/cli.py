@@ -94,7 +94,7 @@ def cli(
 @click.option("-t", "--target", help="The target window xsp:name.")
 @click.pass_context
 def close_windows(context: Context, all: bool, desktop: int, target: str):
-    # pylint: disable=redefined-builtin
+    # pylint: disable=protected-access,redefined-builtin
     """Closes a managed window(s)."""
     ctx = get_context_object(context=context)
     try:
@@ -154,6 +154,7 @@ def close_windows(context: Context, all: bool, desktop: int, target: str):
     help="Output format.",
     default="plain",
     type=click.Choice(["json", "plain", "yaml"], case_sensitive=False),
+    show_default=True,
 )
 @click.pass_context
 def dump_windows(
@@ -163,7 +164,7 @@ def dump_windows(
     """
     Lists X11 windows in a given format.
 
-    The output format can be specified as a colon-separated list of column names, each of which will be populated
+    The output columns can be specified as a colon-separated list of column names, each of which will be populated
     from the corresponding xsessionp.get_window_<column>() method.
     """
     output = output.lower()
@@ -329,6 +330,7 @@ def list_columns(*, context: Context, output: str = "plain"):
     help="Output format.",
     default="plain",
     type=click.Choice(["json", "plain", "yaml"], case_sensitive=False),
+    show_default=True,
 )
 @click.pass_context
 def list_windows(
@@ -338,7 +340,7 @@ def list_windows(
     """
     Lists managed windows in a given format.
 
-    The output format can be specified as a colon-separated list of column names, each of which will be populated
+    The output columns can be specified as a colon-separated list of column names, each of which will be populated
     from the corresponding xsessionp.get_window_<column>() method.
     """
     output = output.lower()
@@ -493,7 +495,7 @@ def ls(context: Context, qualified: bool):
 @click.option("-t", "--target", help="The target window name.")
 @click.pass_context
 def reposition_windows(context: Context, all: bool, desktop: int, target: str):
-    # pylint: disable=redefined-builtin
+    # pylint: disable=protected-access,redefined-builtin
     """Aligns the current position of a managed window(s) to match the embedded metadata."""
     ctx = get_context_object(context=context)
     try:
