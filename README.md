@@ -6,7 +6,7 @@
 [![python versions](https://img.shields.io/pypi/pyversions/xsessionp.svg?logo=python&logoColor=FBE072)](https://pypi.org/project/xsessionp)
 [![linting](https://img.shields.io/badge/linting-pylint-yellowgreen)](https://github.com/PyCQA/pylint)
 [![code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-[![license](https://img.shields.io/github/license/crashvb/xsessionp.svg)](https://github.com/crashvb/xsessionp/blob/master/LICENSE)
+[![license](https://img.shields.io/github/license/crashvb/xsessionp.svg)](https://github.com/crashvb/xsessionp/blob/master/LICENSE.md)
 
 ## Overview
 
