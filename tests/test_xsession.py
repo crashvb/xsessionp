@@ -41,9 +41,6 @@ def test___init__(xsession: XSession):
     assert xsession
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test___getattr____setattr__(xsession: XSession):
     """Tests __getattr__ and __setattr__ methods."""
     desktop_count = xsession._NET_NUMBER_OF_DESKTOPS[0]
@@ -68,56 +65,48 @@ def test___getattr____setattr__(xsession: XSession):
     set_desktop(desktop=desktop_original)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_NUMBER_OF_DESKTOPS",
-)
 def test_get_atom(xsession: XSession):
     """Tests that atom values can be retrieved."""
-    assert xsession.get_atom(name=NET_NUMBER_OF_DESKTOPS) == 526
+    assert xsession.get_atom(name=NET_NUMBER_OF_DESKTOPS) > 0
     bad_value = "foobar"
     with pytest.raises(RuntimeError):
         xsession.get_atom(name=bad_value)
     assert xsession.get_atom(check=False, name=bad_value) == NONE
 
 
-@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 def test_get_atom_name(xsession: XSession):
     """Tests atom names can be retrieved."""
-    assert xsession.get_atom_name(atom=526) == NET_NUMBER_OF_DESKTOPS
+    name = NET_NUMBER_OF_DESKTOPS
+    atom = xsession.get_atom(name=name)
+    assert atom > 0
+    assert xsession.get_atom_name(atom=atom) == name
+
     bad_value = 1000
     with pytest.raises(BadAtom):
         xsession.get_atom_name(atom=bad_value)
     assert xsession.get_atom_name(atom=bad_value, check=False) is None
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
-def test_get_client_list(xsession: XSession):
+@pytest.mark.xclock
+def test_get_client_list(window_id: int, xsession: XSession):
     """Tests that the list of managed windows can be retrieved."""
-
     client_list = xsession.get_client_list()
+    # Note: Client list should not be empty as at least xclock will be running ...
     if client_list is not None:
         assert isinstance(client_list, list)
         assert len(client_list)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
-def test_get_client_list_stacking(xsession: XSession):
+@pytest.mark.xclock
+def test_get_client_list_stacking(window_id: int, xsession: XSession):
     """Tests that the (stacked) list of managed windows can be retrieved."""
-
     client_list_stack = xsession.get_client_list_stacking()
+    # Note: Client list should not be empty as at least xclock will be running ...
     if client_list_stack is not None:
         assert isinstance(client_list_stack, list)
         assert len(client_list_stack)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_get_desktop_active(xsession: XSession):
     """Tests that the active desktop can be retrieved."""
     desktop = xsession.get_desktop_active()
@@ -125,9 +114,6 @@ def test_get_desktop_active(xsession: XSession):
     assert desktop is not None
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_get_desktop_count(xsession: XSession):
     """Tests that the number of desktops can be retrieved."""
     count = xsession.get_desktop_count()
@@ -135,9 +121,6 @@ def test_get_desktop_count(xsession: XSession):
     assert count is not None
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_get_desktop_geometry(xsession: XSession):
     """Tests that the dimensions of the desktops can be retrieved."""
     geometry = xsession.get_desktop_geometry()
@@ -158,9 +141,6 @@ def test_get_desktop_layout(xsession: XSession):
     assert layout[1] + layout[2]  # Should be at least 1 column or 1 row
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_get_desktop_names(xsession: XSession):
     """Tests that the names of the desktops can be retrieved."""
     count = xsession.get_desktop_count()
@@ -181,9 +161,6 @@ def test_get_desktop_showing(xsession: XSession):
     assert showing is not None
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_get_desktop_viewport(xsession: XSession):
     """Tests that the viewports of the desktops can be retrieved."""
     viewport = xsession.get_desktop_viewport()
@@ -221,20 +198,15 @@ def test_get_uptime():
     assert time1 != time0
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
-def test_get_window_active(xsession: XSession):
+@pytest.mark.xclock
+def test_get_window_active(window_id: int, xsession: XSession):
     """Tests that the active window can be retrieved."""
+    # Note: There should be at least one active window as at least xclock will be running ...
     window = xsession.get_window_active()
     assert window
     assert isinstance(window, Window)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_ALLOWED_ACTIONS",
-)
 @pytest.mark.xclock
 def test_get_window_allowed_actions(window_id: int, xsession: XSession):
     """Tests that the allowed actions can be retrieved for a window."""
@@ -251,9 +223,6 @@ def test_get_window_by_id(window_id: int, xsession: XSession):
     assert isinstance(window, Window)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 @pytest.mark.xclock
 def test_get_window_class(window_id: int, xsession: XSession):
     """Tests that the class can be retrieved for a window."""
@@ -262,10 +231,6 @@ def test_get_window_class(window_id: int, xsession: XSession):
     assert "xclock" in classes
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_DESKTOP",
-)
 @pytest.mark.xclock
 def test_get_window_desktop(window_id: int, xsession: XSession):
     """Tests that desktop assigned to a window can be retrieved."""
@@ -284,7 +249,6 @@ def test_get_window_dimensions(window_id: int, xsession: XSession):
     assert dimensions[1] > 0
 
 
-@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 def test_get_window_focus(xsession: XSession):
     """Tests that currently focused window can be retrieved."""
     window = xsession.get_window_focus()
@@ -298,7 +262,6 @@ def test_get_window_focus(xsession: XSession):
     LOGGER.debug("Focused window: %d", xsession._get_window_id(window=window))
 
 
-@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 @pytest.mark.xclock
 def test_get_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that the frame extents of a window can be retrieved."""
@@ -307,10 +270,6 @@ def test_get_window_frame_extents(window_id: int, xsession: XSession):
     assert len(frame_extents) == 4
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_SUPPORTING_WM_CHECK",
-)
 def test_get_window_manager(xsession: XSession):
     """Tests that the window manager can be retrieved."""
     window = xsession.get_window_manager()
@@ -367,25 +326,23 @@ def test_get_window_root(xsession: XSession):
     assert xsession.get_window_root()
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_FULLSCREEN",
-)
 @pytest.mark.xclock
 def test_get_window_state(window_id: int, xsession: XSession):
     """Tests that the state can be retrieved for a window."""
     atom_name = "_NET_WM_STATE_FULLSCREEN"
     atom_value = xsession.get_atom(name=atom_name)
 
-    states0 = xsession.get_window_state(window=window_id)
-    assert isinstance(states0, list)
-    assert atom_value not in states0
+    state0 = xsession.get_window_state(window=window_id)
+    # Some window managers (Fluxbox) remove empty _NET_WM_STATE atoms
+    if state0 is not None:
+        assert isinstance(state0, list)
+        assert atom_value not in state0
 
     xsession.set_window_state(state0=atom_name, window=window_id)
     allow_xserver_to_sync()
-    states1 = xsession.get_window_state(window=window_id)
-    assert isinstance(states1, list)
-    assert atom_value in states1
+    state1 = xsession.get_window_state(window=window_id)
+    assert isinstance(state1, list)
+    assert atom_value in state1
 
 
 @pytest.mark.skip("Test scenario refinement needed.")
@@ -402,9 +359,6 @@ def test_get_window_visible_name(window_id: int, xsession: XSession):
     assert xsession.get_window_visible_name(window=window_id) == "xclock"
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_WORKAREA"
-)
 def test_get_workarea(xsession: XSession):
     """Tests that the workarea can be retrieved."""
     workarea = xsession.get_workarea()
@@ -414,10 +368,6 @@ def test_get_workarea(xsession: XSession):
         assert len(lst) == 4
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_VIRTUAL_ROOTS",
-)
 def test_get_virtual_roots(xsession: XSession):
     """Tests that the list of virtual can be retrieved."""
     virtual_roots = xsession.get_virtual_roots()
@@ -452,9 +402,6 @@ def test_search(window_id: int, xsession: XSession):
     assert len(windows) == max_results
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 def test_set_desktop_active(xsession: XSession):
     """Tests that the active desktop can be assigned."""
     desktop_count = xsession.get_desktop_count()
@@ -589,7 +536,9 @@ def test_set_window_active(xsessionp: XSessionp):
         def set_active(*, window: int):
             xsessionp.set_window_active(window=window)
             allow_xserver_to_sync()
-            assert xsessionp.get_window_active().id == window
+            window_active = xsessionp.get_window_active()
+            assert window_active
+            assert window_active.id == window
 
         window_metadata0 = xsessionp.launch_command(args=["xclock"])
         window_id0 = xsessionp.guess_window(
@@ -619,10 +568,6 @@ def test_set_window_active(xsessionp: XSessionp):
         kill_all_xclock_instances()
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_CLOSE_WINDOW",
-)
 @pytest.mark.xclock
 def test_set_window_close(window_id: int, xsession: XSession):
     """Tests that a window can be closed."""
@@ -632,9 +577,6 @@ def test_set_window_close(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
 @pytest.mark.xclock
 def test_set_window_desktop(window_id: int, xsession: XSession):
     """Tests that a desktop can be assigned to a window."""
@@ -719,7 +661,6 @@ def test_set_window_focus(xsessionp: XSessionp):
         kill_all_xclock_instances()
 
 
-@pytest.mark.skipif("TRAVIS" in os.environ, reason="Does not work with xvfb.")
 @pytest.mark.xclock
 def test_set_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that frame extents can be assigned to a window."""
@@ -767,53 +708,61 @@ def test_set_window_position(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) != position0
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_FULLSCREEN",
-)
 @pytest.mark.xclock
 def test_set_window_state(window_id: int, xsession: XSession):
     """Tests that a state can be assigned to a given window."""
-    states0 = xsession.get_window_state(window=window_id)
+    state0 = xsession.get_window_state(window=window_id)
+    # Some window managers (Fluxbox) remove empty _NET_WM_STATE atoms
+    if state0 is not None:
+        assert isinstance(state0, list)
 
     # Find a state that is not in the list ...
     atom_name = "_NET_WM_STATE_FULLSCREEN"
     atom_value = xsession.get_atom(name=atom_name)
-    assert atom_value not in states0
+    if state0 is not None:
+        assert atom_value not in state0
 
     # Add the atom ...
     xsession.set_window_state(state0=atom_name, window=window_id)
     allow_xserver_to_sync()
-    states1 = xsession.get_window_state(window=window_id)
-    assert atom_value in states1
-    assert states1 != states0
+    state1 = xsession.get_window_state(window=window_id)
+    if state1 is not None:
+        assert isinstance(state1, list)
+        assert atom_value in state1
+    assert state1 != state0
 
     # Remove the atom ...
     xsession.set_window_state(action=ACTION_REMOVE, state0=atom_name, window=window_id)
     allow_xserver_to_sync()
-    states2 = xsession.get_window_state(window=window_id)
-    assert atom_value not in states2
-    assert states2 == states0
-    assert states2 != states1
+    state2 = xsession.get_window_state(window=window_id)
+    if state2 is not None:
+        assert isinstance(state2, list)
+        assert atom_value not in state2
+    assert state2 == state0
+    assert state2 != state1
 
     # Toggle the atom ...
     xsession.set_window_state(action=ACTION_TOGGLE, state0=atom_name, window=window_id)
     allow_xserver_to_sync()
-    states3 = xsession.get_window_state(window=window_id)
-    assert atom_value in states3
-    assert states3 != states0
-    assert states3 == states1
-    assert states3 != states2
+    state3 = xsession.get_window_state(window=window_id)
+    assert state3 is not None
+    assert isinstance(state3, list)
+    assert atom_value in state3
+    assert state3 != state0
+    assert state3 == state1
+    assert state3 != state2
 
     # Toggle the atom (again), also use the value ...
     xsession.set_window_state(action=ACTION_TOGGLE, state0=atom_value, window=window_id)
     allow_xserver_to_sync()
-    states4 = xsession.get_window_state(window=window_id)
-    assert atom_value not in states4
-    assert states4 == states0
-    assert states4 != states1
-    assert states4 == states2
-    assert states4 != states3
+    state4 = xsession.get_window_state(window=window_id)
+    if state4 is not None:
+        assert isinstance(state4, list)
+        assert atom_value not in state4
+    assert state4 == state0
+    assert state4 != state1
+    assert state4 == state2
+    assert state4 != state3
 
 
 # TODO: def test_wait_window_active (xsessionp: XSessionp):
@@ -843,7 +792,6 @@ def test_window_kill(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-# @pytest.mark.skipif("TRAVIS" in os.environ, reason="Doesn't work with xvfb.")
 @pytest.mark.xclock
 def test_window_map_unmap(window_id: int, xsession: XSession):
     """Tests that a window can be mapped and unmapped."""
@@ -868,23 +816,21 @@ def test_window_map_unmap(window_id: int, xsession: XSession):
     assert get_window_attributes.map_state == IsViewable
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_MAXIMIZED_HORZ",
-)
 @pytest.mark.xclock
 def test_window_maximize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
     state = xsession.get_window_state(window=window_id)
     horizontal = xsession.get_atom(name=NET_WM_STATE_MAXIMIZED_HORZ)
     vertical = xsession.get_atom(name=NET_WM_STATE_MAXIMIZED_VERT)
-    assert horizontal not in state
-    assert vertical not in state
+    if state is not None:
+        assert horizontal not in state
+        assert vertical not in state
 
     # Maximize horizontal ...
     xsession.window_maximize(flags=[horizontal], window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
+    assert state is not None
     assert horizontal in state
     assert vertical not in state
 
@@ -892,13 +838,15 @@ def test_window_maximize(window_id: int, xsession: XSession):
     xsession.window_maximize(inverse=True, window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
-    assert horizontal not in state
-    assert vertical not in state
+    if state is not None:
+        assert horizontal not in state
+        assert vertical not in state
 
     # Maximize vertical ...
     xsession.window_maximize(flags=[vertical], window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
+    assert state is not None
     assert horizontal not in state
     assert vertical in state
 
@@ -906,13 +854,15 @@ def test_window_maximize(window_id: int, xsession: XSession):
     xsession.window_maximize(inverse=True, window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
-    assert horizontal not in state
-    assert vertical not in state
+    if state is not None:
+        assert horizontal not in state
+        assert vertical not in state
 
     # Maximize both ...
     xsession.window_maximize(window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
+    assert state is not None
     assert horizontal in state
     assert vertical in state
 
@@ -920,38 +870,34 @@ def test_window_maximize(window_id: int, xsession: XSession):
     xsession.window_maximize(inverse=True, window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
-    assert horizontal not in state
-    assert vertical not in state
+    if state is not None:
+        assert horizontal not in state
+        assert vertical not in state
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_STATE_HIDDEN",
-)
 @pytest.mark.xclock
 def test_window_minimize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
     state = xsession.get_window_state(window=window_id)
     hidden = xsession.get_atom(name=NET_WM_STATE_HIDDEN)
-    assert hidden not in state
+    if state is not None:
+        assert hidden not in state
 
     # Minimize ...
     xsession.window_minimize(window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
+    assert state is not None
     assert hidden in state
 
     # Unminimize ...
     xsession.window_minimize(inverse=True, window=window_id)
     allow_xserver_to_sync()
     state = xsession.get_window_state(window=window_id)
-    assert hidden not in state
+    if state is not None:
+        assert hidden not in state
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_MOVERESIZE_WINDOW",
-)
 @pytest.mark.xclock
 def test_window_moveresize(window_id: int, xsession: XSession):
     """Tests that a window can be moved and resized."""
@@ -996,9 +942,11 @@ def test_window_raise(xsessionp: XSessionp):
     try:
 
         def raise_window(*, window: int):
-            xsessionp.set_window_active(window=window)
+            xsessionp.window_raise(window=window)
             allow_xserver_to_sync()
-            assert xsessionp.get_window_active().id == window
+            window_active = xsessionp.get_window_active()
+            assert window_active
+            assert window_active.id == window
 
         window_metadata0 = xsessionp.launch_command(args=["xclock"])
         window_id0 = xsessionp.guess_window(

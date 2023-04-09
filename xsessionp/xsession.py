@@ -505,7 +505,13 @@ class XSession:
     def get_desktop_names(self) -> Optional[List[str]]:
         """Retrieves the names of the desktops."""
         result = self._NET_DESKTOP_NAMES
-        return result.decode("utf-8").split("\x00")[:-1] if result is not None else None
+
+        if result is not None:
+            # https://sourceforge.net/p/fluxbox/bugs/1194/
+            if result[-1] == 0:
+                result = result[:-1]
+            result = result.decode("utf-8").split("\x00")
+        return result
 
     def get_desktop_showing(self) -> Optional[int]:
         """Retrieves the showing desktop flag."""

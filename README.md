@@ -177,7 +177,7 @@ Keys with a `no_` prefix have a higher precedence then those without.
 
 Command used to launch the window. Provided as `args` to [subprocess.Popen](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
 
-#### <a name="config_copy_environment"></a> copy_environment (type: `bool`, default: `True`)
+#### <a name="config_copy_environment"></a> copy\_environment (type: `bool`, default: `True`)
 
 If true, the environment of xsessionp will be used as the base for launched windows. Otherwise, and empty environment will be used instead. This does not affect values declared via <a href="#config_environment">environment</a>.
 
@@ -201,7 +201,7 @@ Key value pairs to be provided via the environment of the launched window. These
 
 If true, the window will be activated after all windows have been launched. If more than one window contains this value, the value is ignored.
 
-#### <a name="config_hint_method"></a> hint_method (type: `enum`, values: `AND`, `OR`)
+#### <a name="config_hint_method"></a> hint\_method (type: `enum`, values: `AND`, `OR`)
 
 Boolean method by which <a href="#config_hints">hints</a> are evaluated.
 
@@ -223,7 +223,7 @@ Name (`xsp:name`) use to select windows when the configuration is loaded, and to
 
 The position to assigned to the launched window. Values should take the form of `{x},{y}` or `{x}x{y}`. If not provided, no positioning is performed.
 
-#### <a name="config_search_delay"></a> search_delay (type: `float`, default: `0`)
+#### <a name="config_search_delay"></a> search\_delay (type: `float`, default: `0`)
 
 The amount of time, in seconds, to wait before searching for launched windows. See <a href="#config_hints">hints</a> for an explanation of the methodology.
 
@@ -235,11 +235,11 @@ If true, <a href="config_command">command</a> will be executed via a shell. Prov
 
 If true, supporting window managers will be instructed to [snap](https://unix.stackexchange.com/a/511794), rather than tile, the launched window.
 
-#### <a name="config_start_directory"></a> start_directory (type: `str`, default: `/`)
+#### <a name="config_start_directory"></a> start\_directory (type: `str`, default: `/`)
 
 The working directory of the launched window. Provided as `cwd` to [subprocess.Popen](https://docs.python.org/3/library/subprocess.html#subprocess.Popen).
 
-#### <a name="config_start_timeout"></a> start_timeout (type: `int`, default: `3`)
+#### <a name="config_start_timeout"></a> start\_timeout (type: `int`, default: `3`)
 
 The maximum amount of time, in seconds, to wait for launched windows to be visible, prior to sizing and positioning.
 
@@ -255,7 +255,7 @@ Linux Mint Cinnamon: `BOTTOM`, `LEFT`, `LEFT_BOTTOM`, `LEFT_TOP`, `MAXIMIZE`, `N
 
 | Variable | Default Value | Description |
 | ---------| ------------- | ----------- |
-| XSESSIONP_CONFIGDIR | ~/.xsessionp | xsessionp configuration directory.
+| XSESSIONP\_CONFIGDIR | ~/.xsessionp | xsessionp configuration directory.
 
 ## Development
 

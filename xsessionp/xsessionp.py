@@ -25,7 +25,12 @@ from Xlib.xobject.drawable import Window
 from Xlib.X import AnyPropertyType
 from Xlib.Xatom import STRING
 
-from .muffin import Muffin, TileMode as TileModeMuffin, TileType as TileTypeMuffin
+from .muffin import (
+    Muffin,
+    TileMode as TileModeMuffin,
+    TileType as TileTypeMuffin,
+    WINDOW_MANAGER as WINDOW_MANAGER_MUFFIN,
+)
 from .xsession import get_uptime, XSession
 
 EXTENSIONS = ["json", "yaml", "yml"]
@@ -76,6 +81,10 @@ class XSessionp(XSession):
             self.check = xsession.check
             self.display = xsession.display
 
+    def _bootstrap_atoms(self):
+        """Ensures that custom atoms exist within the window manager before they are referenced."""
+        self.get_atom(name=XSESSIONP_METADATA, only_if_exists=False)
+
     def find_xsessionp_windows(self) -> Optional[List[Window]]:
         """Locates windows containing metadata from xsessionp."""
         return self.search(
@@ -92,6 +101,7 @@ class XSessionp(XSession):
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[str]:
         """Retrieves the desktop containing a given window."""
+        self._bootstrap_atoms()
         return self.get_window_property(
             atom=XSESSIONP_METADATA,
             check=check,
@@ -319,6 +329,8 @@ class XSessionp(XSession):
             if "name" not in window:
                 window["name"] = self.generate_name(index=i, path=path)
 
+            # TODO: Do we need to check for name uniqueness here?
+
             # Check: indices and names ...
             if indices and i not in indices:
                 LOGGER.debug("Skipping; window[%s] filtered by index.", i)
@@ -399,8 +411,7 @@ class XSessionp(XSession):
                 LOGGER.error("Unable to locate spawned window!")
                 continue
 
-            # Add metadata to the new window (bootstrap atom creation) ...
-            self.get_atom(name=XSESSIONP_METADATA, only_if_exists=False)
+            # Add metadata to the new window  ...
             self.set_window_xsessionp_metadata(
                 data=json.dumps(obj=window, sort_keys=True), window=window["id"]
             )
@@ -483,6 +494,7 @@ class XSessionp(XSession):
         LOGGER.debug(
             "Assigning xsessionp metadata to window %d", self._get_window_id(window)
         )
+        self._bootstrap_atoms()
         self._change_property(
             atom=XSESSIONP_METADATA,
             check=check,
@@ -501,8 +513,8 @@ class XSessionp(XSession):
     ):
         """Tiles a given window."""
         window_manager = self.get_window_manager_name().lower()
-        if "muffin" in window_manager:
-            window_manager = "muffin"
+        if WINDOW_MANAGER_MUFFIN in window_manager:
+            window_manager = WINDOW_MANAGER_MUFFIN
             LOGGER.debug(
                 "Tiling [%s] window %d to: %s [%s]",
                 window_manager,

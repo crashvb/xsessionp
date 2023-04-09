@@ -3,7 +3,6 @@
 """xsessionp tests."""
 
 import logging
-import os
 
 from pathlib import Path
 from time import time
@@ -22,10 +21,6 @@ from .testutils import (
 LOGGER = logging.getLogger(__name__)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _XSESSIONP_METADATA",
-)
 @pytest.mark.xclock
 def test_find_xsessionp_windows(window_id: int, xsessionp: XSessionp):
     """Tests that a xsessionp windows can be located."""
@@ -41,10 +36,6 @@ def test_find_xsessionp_windows(window_id: int, xsessionp: XSessionp):
     )
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_SUPPORTING_WM_CHECK",
-)
 def test_get_window_manager_name(xsessionp: XSessionp):
     """Tests that the name of the window manager can be retrieved."""
     assert xsessionp.get_window_manager_name()
@@ -106,10 +97,6 @@ def test_key_enabled(xsessionp: XSessionp):
     assert not xsessionp.key_enabled(key="key2", window=window)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _XSESSIONP_METADATA",
-)
 @pytest.mark.xclock
 def test_get_set_window_xsessionp_metadata(window_id: int, xsessionp: XSessionp):
     """Tests that a xsessionp metadata can be retrieved for a window."""
@@ -161,10 +148,6 @@ def test_sanitize_config(caplog: LogCaptureFixture, xsessionp: XSessionp):
     assert 'Reserved attribute "id" defined by user' in caplog.text
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
-)
 @pytest.mark.xclock
 def test_window_tile_muffin(muffin: Muffin, window_id: int, xsessionp: XSessionp):
     # pylint: disable=too-many-locals,too-many-statements
