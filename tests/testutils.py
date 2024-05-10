@@ -16,6 +16,7 @@ from typing import Dict
 LOGGER = logging.getLogger(__name__)
 
 QUASI_DETERMINISTIC_DELAY = 2
+WINDOW_MANAGER_FLUXBOX = "fluxbox"
 
 
 # TODO: Is there a way to make this deterministic?

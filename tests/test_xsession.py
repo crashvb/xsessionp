@@ -26,11 +26,13 @@ from xsessionp import (
 )
 from xsessionp.ewmh import ACTION_TOGGLE, NET_NUMBER_OF_DESKTOPS, NET_WM_STATE_HIDDEN
 from xsessionp.gnome import WINDOW_MANAGER as WINDOW_MANAGER_GNOME
+from xsessionp.muffin import WINDOW_MANAGER as WINDOW_MANAGER_MUFFIN
 
 from .testutils import (
     allow_xserver_to_sync,
     get_xlogo_hints,
     kill_all_xlogo_instances,
+    WINDOW_MANAGER_FLUXBOX,
 )
 
 
@@ -133,8 +135,8 @@ def test_get_desktop_geometry(xsession: XSession):
     assert geometry[1]
 
 
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX, WINDOW_MANAGER_GNOME)
 @pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
-@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
 def test_get_desktop_layout(xsession: XSession):
     """Tests that the layout of the desktops can be retrieved."""
     layout = xsession.get_desktop_layout()
@@ -153,6 +155,7 @@ def test_get_desktop_names(xsession: XSession):
     assert names[count - 1]
 
 
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX)
 @pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
 def test_get_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be retrieved."""
@@ -288,7 +291,7 @@ def test_get_window_name(window_id: int, xsession: XSession):
     assert xsession.get_window_name(window=window_id) == "xlogo"
 
 
-@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX, WINDOW_MANAGER_GNOME)
 @pytest.mark.xlogo
 def test_get_window_pid(window_id: int, xsession: XSession):
     """Tests that a process ID can be retrieved for a window."""
@@ -502,6 +505,7 @@ def test_set_desktop_layout(xsession: XSession):
     )
 
 
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX)
 @pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
 def test_set_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be assigned."""
@@ -619,7 +623,7 @@ def test_set_window_dimensions(window_id: int, xsession: XSession):
     assert xsession.get_window_dimensions(window=window_id) == dimensions1
 
 
-@pytest.mark.require_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_MUFFIN)
 @pytest.mark.xlogo
 def test_set_window_focus(xsessionp: XSessionp):
     """Tests that a window can be focused."""
@@ -929,7 +933,7 @@ def test_window_moveresize(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) == position1
 
 
-@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX, WINDOW_MANAGER_GNOME)
 @pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW")
 @pytest.mark.xlogo
 def test_window_raise(xsessionp: XSessionp):

@@ -59,7 +59,7 @@ def exclude_window_managers(request, window_manager_name: str):
     """Skips tests if using a given window manager(s)."""
     marker = request.node.get_closest_marker("exclude_window_managers")
     if marker and window_manager_name in marker.args:
-        pytest.skip(f"Skipping; window manager '{window_manager_name}' is excluded.")
+        pytest.skip(f"Window manager '{window_manager_name}' is excluded.")
 
 
 @pytest.fixture(autouse=True)
@@ -67,9 +67,7 @@ def require_window_managers(request, window_manager_name: str):
     """Skips tests unless using a given window manager(s)."""
     marker = request.node.get_closest_marker("require_window_managers")
     if marker and window_manager_name not in marker.args:
-        pytest.skip(
-            f"Skipping; window manager '{window_manager_name}' is not supported."
-        )
+        pytest.skip(f"Window manager '{window_manager_name}' is not supported.")
 
 
 @pytest.fixture(autouse=True)
@@ -77,7 +75,7 @@ def skip_travis(request):
     """Skips tests when executing under travis."""
     marker = request.node.get_closest_marker("skip_travis")
     if marker and "TRAVIS" in os.environ:
-        pytest.skip(f"Skipping test under travis; {marker.args}")
+        pytest.skip(f"Test excluded from travis; {marker.args}")
 
 
 @pytest.fixture
