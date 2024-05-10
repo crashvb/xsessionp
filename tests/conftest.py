@@ -3,21 +3,22 @@
 # pylint: disable=redefined-outer-name
 
 """Configures execution of pytest."""
+import os
 
 import pytest
 
-from xsessionp import Muffin, XSession, XSessionp
+from xsessionp import Gnome, Muffin, XSession, XSessionp
 
-from .testutils import get_xclock_hints, kill_all_xclock_instances
+from .testutils import get_xlogo_hints, kill_all_xlogo_instances
 
 
 def pytest_addoption(parser):
     """pytest add option."""
     parser.addoption(
-        "--allow-xclock-termination",
+        "--allow-xlogo-termination",
         action="store_true",
         default=False,
-        help="Allow blind termination of xclock instances. This may impact xclock instances that are outside the scope "
+        help="Allow blind termination of xlogo instances. This may impact xlogo instances that are outside the scope "
         "of the executing test(s).",
     )
 
@@ -25,21 +26,64 @@ def pytest_addoption(parser):
 def pytest_collection_modifyitems(config, items):
     """pytest collection modifier."""
 
-    skip_xclock = pytest.mark.skip(
-        reason="Execution of xclock tests requires --allow-xclock-termination option."
+    skip_xlogo = pytest.mark.skip(
+        reason="Execution of xlogo tests requires --allow-xlogo-termination option."
     )
     for item in items:
-        if "xclock" in item.keywords and not config.getoption(
-            "--allow-xclock-termination"
+        if "xlogo" in item.keywords and not config.getoption(
+            "--allow-xlogo-termination"
         ):
-            item.add_marker(skip_xclock)
+            item.add_marker(skip_xlogo)
 
 
 def pytest_configure(config):
     """pytest configuration hook."""
     config.addinivalue_line(
-        "markers", "xclock: allow blind termination of xclock instances."
+        "markers",
+        "exclude_window_managers(list): skip tests if using a listed window manager.",
     )
+    config.addinivalue_line(
+        "markers",
+        "require_window_managers(list): skip tests unless using a listed window manager.",
+    )
+    config.addinivalue_line(
+        "markers", "skip_travis(reason): skip tests when executing under travis."
+    )
+    config.addinivalue_line(
+        "markers", "xlogo: allow blind termination of xlogo instances."
+    )
+
+
+@pytest.fixture(autouse=True)
+def exclude_window_managers(request, window_manager_name: str):
+    """Skips tests if using a given window manager(s)."""
+    marker = request.node.get_closest_marker("exclude_window_managers")
+    if marker and window_manager_name in marker.args:
+        pytest.skip(f"Skipping; window manager '{window_manager_name}' is excluded.")
+
+
+@pytest.fixture(autouse=True)
+def require_window_managers(request, window_manager_name: str):
+    """Skips tests unless using a given window manager(s)."""
+    marker = request.node.get_closest_marker("require_window_managers")
+    if marker and window_manager_name not in marker.args:
+        pytest.skip(
+            f"Skipping; window manager '{window_manager_name}' is not supported."
+        )
+
+
+@pytest.fixture(autouse=True)
+def skip_travis(request):
+    """Skips tests when executing under travis."""
+    marker = request.node.get_closest_marker("skip_travis")
+    if marker and "TRAVIS" in os.environ:
+        pytest.skip(f"Skipping test under travis; {marker.args}")
+
+
+@pytest.fixture
+def gnome() -> Gnome:
+    """Provides an Gnome instance."""
+    return Gnome()
 
 
 @pytest.fixture
@@ -50,12 +94,18 @@ def muffin() -> Muffin:
 
 @pytest.fixture()
 def window_id(xsessionp: XSessionp) -> int:
-    """Provides the window ID of a launched xclock instance."""
-    window_metadata = xsessionp.launch_command(args=["xclock"])
+    """Provides the window ID of a launched xlogo instance."""
+    window_metadata = xsessionp.launch_command(args=["xlogo"])
     try:
-        yield xsessionp.guess_window(hints=get_xclock_hints(), windows=window_metadata)
+        yield xsessionp.guess_window(hints=get_xlogo_hints(), windows=window_metadata)
     finally:
-        kill_all_xclock_instances()
+        kill_all_xlogo_instances()
+
+
+@pytest.fixture()
+def window_manager_name(xsessionp: XSessionp) -> str:
+    """Provides the name of the window manager."""
+    return xsessionp.get_window_manager_name().lower()
 
 
 @pytest.fixture

@@ -25,6 +25,12 @@ from Xlib.xobject.drawable import Window
 from Xlib.X import AnyPropertyType
 from Xlib.Xatom import STRING
 
+from .gnome import (
+    Gnome,
+    TileMode as TileModeGnome,
+    TileType as TileTypeGnome,
+    WINDOW_MANAGER as WINDOW_MANAGER_GNOME,
+)
 from .muffin import (
     Muffin,
     TileMode as TileModeMuffin,
@@ -166,7 +172,7 @@ class XSessionp(XSession):
         if not windows:
             return None
 
-        # Quick an dirty ...
+        # Quick and dirty ...
         if len(windows) == 1:
             matches = []
             if sane:
@@ -513,7 +519,22 @@ class XSessionp(XSession):
     ):
         """Tiles a given window."""
         window_manager = self.get_window_manager_name().lower()
-        if WINDOW_MANAGER_MUFFIN in window_manager:
+        if WINDOW_MANAGER_GNOME in window_manager:
+            window_manager = WINDOW_MANAGER_GNOME
+            LOGGER.debug(
+                "Tiling [%s] window %d to: %s [%s]",
+                window_manager,
+                self._get_window_id(window=window),
+                tile_mode,
+                tile_type.lower(),
+            )
+            gnome = Gnome(xsession=self)
+            gnome.window_tile(
+                tile_mode=TileModeGnome[tile_mode.upper()],
+                tile_type=TileTypeGnome[tile_type.upper()],
+                window=window,
+            )
+        elif WINDOW_MANAGER_MUFFIN in window_manager:
             window_manager = WINDOW_MANAGER_MUFFIN
             LOGGER.debug(
                 "Tiling [%s] window %d to: %s [%s]",

@@ -554,7 +554,7 @@ def resolve_config(*, config: Union[Path, str]) -> Optional[Path]:
 @click.pass_context
 def test(context: Context):
     """
-    Perform basic acceptance tests by launching two xclock instances on the current desktop at position (25, 25) and
+    Perform basic acceptance tests by launching two xlogo instances on the current desktop at position (25, 25) and
     (25, 375).
     """
     ctx = get_context_object(context=context)
@@ -567,22 +567,22 @@ def test(context: Context):
         LOGGER.info("Subprocess Test:\n\t%s\n", run(args="pwd"))
 
         with TemporaryDirectory() as tmpdir:
-            path = Path(tmpdir).joinpath("xclock.yml")
+            path = Path(tmpdir).joinpath("xlogo.yml")
             data = {
                 "desktop": ctx.xsessionp.get_desktop_active(),
                 "windows": [
                     {
-                        "command": "xclock",
+                        "command": "xlogo",
                         "dimensions": "300x300",
-                        "hints": {"name": r"^xclock$"},
+                        "hints": {"name": r"^xlogo$"},
                         "focus": True,
                         "position": "25,25",
                         "shell": True,
                     },
                     {
-                        "command": ["xclock", "-digital"],
+                        "command": ["xlogo", "-digital"],
                         "dimensions": "300x40",
-                        "hints": {"name": r"^xclock$"},
+                        "hints": {"name": r"^xlogo$"},
                         "position": "25,375",
                     },
                 ],

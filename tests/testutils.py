@@ -24,16 +24,16 @@ def allow_xserver_to_sync():
     sleep(QUASI_DETERMINISTIC_DELAY)
 
 
-def get_xclock_hints() -> Dict[str, Pattern]:
-    """Retrieves hints to match an xclock window."""
-    return {"name": re.compile(r"^xclock$")}
+def get_xlogo_hints() -> Dict[str, Pattern]:
+    """Retrieves hints to match an xlogo window."""
+    return {"name": re.compile(r"^xlogo$")}
 
 
-def kill_all_xclock_instances():
+def kill_all_xlogo_instances():
     # pylint: disable=subprocess-run-check
     """Terminate ... with extreme prejudice!"""
-    LOGGER.debug("Terminating all xclock instances ...")
-    subprocess.run(args=["killall", "-9", "xclock"])
+    LOGGER.debug("Terminating all xlogo instances ...")
+    subprocess.run(args=["killall", "-9", "xlogo"])
     # Some display managers are not able to keep up with pytest creating and destroying windows. While
     # this is not exactly deterministic, it does seem to help.
     sleep(QUASI_DETERMINISTIC_DELAY)

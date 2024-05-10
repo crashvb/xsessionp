@@ -25,11 +25,12 @@ from xsessionp import (
     XSessionp,
 )
 from xsessionp.ewmh import ACTION_TOGGLE, NET_NUMBER_OF_DESKTOPS, NET_WM_STATE_HIDDEN
+from xsessionp.gnome import WINDOW_MANAGER as WINDOW_MANAGER_GNOME
 
 from .testutils import (
     allow_xserver_to_sync,
-    get_xclock_hints,
-    kill_all_xclock_instances,
+    get_xlogo_hints,
+    kill_all_xlogo_instances,
 )
 
 
@@ -81,27 +82,29 @@ def test_get_atom_name(xsession: XSession):
     assert atom > 0
     assert xsession.get_atom_name(atom=atom) == name
 
-    bad_value = 1000
+    bad_value = 10000
     with pytest.raises(BadAtom):
-        xsession.get_atom_name(atom=bad_value)
+        LOGGER.debug(xsession.get_atom_name(atom=bad_value))
     assert xsession.get_atom_name(atom=bad_value, check=False) is None
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_client_list(window_id: int, xsession: XSession):
+    # pylint: disable=unused-argument
     """Tests that the list of managed windows can be retrieved."""
     client_list = xsession.get_client_list()
-    # Note: Client list should not be empty as at least xclock will be running ...
+    # Note: Client list should not be empty as at least xlogo will be running ...
     if client_list is not None:
         assert isinstance(client_list, list)
         assert len(client_list)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_client_list_stacking(window_id: int, xsession: XSession):
+    # pylint: disable=unused-argument
     """Tests that the (stacked) list of managed windows can be retrieved."""
     client_list_stack = xsession.get_client_list_stacking()
-    # Note: Client list should not be empty as at least xclock will be running ...
+    # Note: Client list should not be empty as at least xlogo will be running ...
     if client_list_stack is not None:
         assert isinstance(client_list_stack, list)
         assert len(client_list_stack)
@@ -130,9 +133,8 @@ def test_get_desktop_geometry(xsession: XSession):
     assert geometry[1]
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
 def test_get_desktop_layout(xsession: XSession):
     """Tests that the layout of the desktops can be retrieved."""
     layout = xsession.get_desktop_layout()
@@ -151,9 +153,7 @@ def test_get_desktop_names(xsession: XSession):
     assert names[count - 1]
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
 def test_get_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be retrieved."""
     showing = xsession.get_desktop_showing()
@@ -198,16 +198,17 @@ def test_get_uptime():
     assert time1 != time0
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_active(window_id: int, xsession: XSession):
+    # pylint: disable=unused-argument
     """Tests that the active window can be retrieved."""
-    # Note: There should be at least one active window as at least xclock will be running ...
+    # Note: There should be at least one active window as at least xlogo will be running ...
     window = xsession.get_window_active()
     assert window
     assert isinstance(window, Window)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_allowed_actions(window_id: int, xsession: XSession):
     """Tests that the allowed actions can be retrieved for a window."""
     allowed_actions = xsession.get_window_allowed_actions(window=window_id)
@@ -215,7 +216,7 @@ def test_get_window_allowed_actions(window_id: int, xsession: XSession):
     assert len(allowed_actions)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_by_id(window_id: int, xsession: XSession):
     """Tests that a window can be retrieved by ID."""
     window = xsession.get_window_by_id(window_id=window_id)
@@ -223,15 +224,15 @@ def test_get_window_by_id(window_id: int, xsession: XSession):
     assert isinstance(window, Window)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_class(window_id: int, xsession: XSession):
     """Tests that the class can be retrieved for a window."""
     classes = xsession.get_window_class(window=window_id)
     assert classes
-    assert "xclock" in classes
+    assert "xlogo" in classes
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_desktop(window_id: int, xsession: XSession):
     """Tests that desktop assigned to a window can be retrieved."""
     desktop = xsession.get_window_desktop(window=window_id)
@@ -239,7 +240,7 @@ def test_get_window_desktop(window_id: int, xsession: XSession):
     assert desktop is not None
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_dimensions(window_id: int, xsession: XSession):
     """Tests that dimensions can be retrieved for a window."""
     dimensions = xsession.get_window_dimensions(window=window_id)
@@ -262,7 +263,7 @@ def test_get_window_focus(xsession: XSession):
     LOGGER.debug("Focused window: %d", xsession._get_window_id(window=window))
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that the frame extents of a window can be retrieved."""
     frame_extents = xsession.get_window_frame_extents(window=window_id)
@@ -281,19 +282,20 @@ def test_get_window_manager(xsession: XSession):
     assert name
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_name(window_id: int, xsession: XSession):
     """Tests that the name can be retrieved for a window."""
-    assert xsession.get_window_name(window=window_id) == "xclock"
+    assert xsession.get_window_name(window=window_id) == "xlogo"
 
 
-@pytest.mark.xclock
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.xlogo
 def test_get_window_pid(window_id: int, xsession: XSession):
     """Tests that a process ID can be retrieved for a window."""
     assert xsession.get_window_pid(window=window_id)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_position(window_id: int, xsession: XSession):
     """Tests that coordinates can be retrieved for a window."""
     position = xsession.get_window_position(window=window_id)
@@ -301,23 +303,23 @@ def test_get_window_position(window_id: int, xsession: XSession):
     assert len(position) == 2
 
 
-@pytest.mark.xclock
-def test_get_window_properties(window_id: int, xsessionp: XSessionp):
+@pytest.mark.xlogo
+def test_get_window_properties(window_id: int, xsession: XSession):
     """Tests that a list of valid properties can be retrieved."""
-    properties = xsessionp.get_window_properties(window=window_id)
+    properties = xsession.get_window_properties(window=window_id)
     assert properties
 
 
-@pytest.mark.xclock
-def test_get_window_property(window_id: int, xsessionp: XSessionp):
+@pytest.mark.xlogo
+def test_get_window_property(window_id: int, xsession: XSession):
     """Tests that a property can be retrieved from a windows by name."""
-    properties = xsessionp.get_window_properties(window=window_id)
+    properties = xsession.get_window_properties(window=window_id)
     assert properties
 
-    value = xsessionp.get_window_property(atom=properties[0], window=window_id)
+    value = xsession.get_window_property(atom=properties[0], window=window_id)
     assert value
 
-    foobar = xsessionp.get_window_property(check=False, atom="foobar", window=window_id)
+    foobar = xsession.get_window_property(check=False, atom="foobar", window=window_id)
     assert foobar is None
 
 
@@ -326,7 +328,7 @@ def test_get_window_root(xsession: XSession):
     assert xsession.get_window_root()
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_state(window_id: int, xsession: XSession):
     """Tests that the state can be retrieved for a window."""
     atom_name = "_NET_WM_STATE_FULLSCREEN"
@@ -346,17 +348,17 @@ def test_get_window_state(window_id: int, xsession: XSession):
 
 
 @pytest.mark.skip("Test scenario refinement needed.")
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_type(window_id: int, xsession: XSession):
     """Tests that the type can be retrieved for a window."""
     assert xsession.get_window_type(window=window_id)
 
 
 @pytest.mark.skip("Test scenario refinement needed.")
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_get_window_visible_name(window_id: int, xsession: XSession):
     """Tests that the visible name can be retrieved for a window."""
-    assert xsession.get_window_visible_name(window=window_id) == "xclock"
+    assert xsession.get_window_visible_name(window=window_id) == "xlogo"
 
 
 def test_get_workarea(xsession: XSession):
@@ -375,7 +377,7 @@ def test_get_virtual_roots(xsession: XSession):
         assert isinstance(virtual_roots, list)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_search(window_id: int, xsession: XSession):
     """Tests that a search can be performed to find a window."""
     max_results = 3
@@ -390,7 +392,7 @@ def test_search(window_id: int, xsession: XSession):
 
     # Test matcher ...
     windows = xsession.search(
-        matcher=lambda x: xsession.get_window_name(check=False, window=x) == "xclock"
+        matcher=lambda x: xsession.get_window_name(check=False, window=x) == "xlogo"
     )
     assert windows
     assert len(windows) == 1
@@ -500,9 +502,7 @@ def test_set_desktop_layout(xsession: XSession):
     )
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ, reason="xvfb failure: Unable to intern atom: _NET_SUPPORTED"
-)
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_SUPPORTED")
 def test_set_desktop_showing(xsession: XSession):
     """Tests that the showing desktop flag can be assigned."""
 
@@ -524,11 +524,8 @@ def test_set_desktop_showing(xsession: XSession):
     set_showing(showing=showing_original)
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
-)
-@pytest.mark.xclock
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW")
+@pytest.mark.xlogo
 def test_set_window_active(xsessionp: XSessionp):
     """Tests that a window can be activated."""
     try:
@@ -540,18 +537,18 @@ def test_set_window_active(xsessionp: XSessionp):
             assert window_active
             assert window_active.id == window
 
-        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
         window_id0 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata0
+            hints=get_xlogo_hints(), windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be active, but was it before (by default)?
         set_active(window=window_id0)
 
-        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
         window_id1 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata1
+            hints=get_xlogo_hints(), windows=window_metadata1
         )
         assert window_id1
 
@@ -565,10 +562,10 @@ def test_set_window_active(xsessionp: XSessionp):
         # One more time, for good measure ...
         set_active(window=window_id1)
     finally:
-        kill_all_xclock_instances()
+        kill_all_xlogo_instances()
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_close(window_id: int, xsession: XSession):
     """Tests that a window can be closed."""
     xsession.set_window_close(window=window_id)
@@ -577,7 +574,7 @@ def test_set_window_close(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_desktop(window_id: int, xsession: XSession):
     """Tests that a desktop can be assigned to a window."""
 
@@ -603,7 +600,7 @@ def test_set_window_desktop(window_id: int, xsession: XSession):
     set_desktop(desktop=desktop_original)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_dimensions(window_id: int, xsession: XSession):
     """Tests that a window can be sized."""
     dimensions0 = xsession.get_window_dimensions(window=window_id)
@@ -622,8 +619,8 @@ def test_set_window_dimensions(window_id: int, xsession: XSession):
     assert xsession.get_window_dimensions(window=window_id) == dimensions1
 
 
-@pytest.mark.skip("Test scenario refinement needed.")
-@pytest.mark.xclock
+@pytest.mark.require_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.xlogo
 def test_set_window_focus(xsessionp: XSessionp):
     """Tests that a window can be focused."""
     try:
@@ -633,18 +630,18 @@ def test_set_window_focus(xsessionp: XSessionp):
             allow_xserver_to_sync()
             assert xsessionp.get_window_focus().id == window_id
 
-        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
         window_id0 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata0
+            hints=get_xlogo_hints(), windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be focused, but was it before (by default)?
         make_focused(window_id=window_id0)
 
-        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
         window_id1 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata1
+            hints=get_xlogo_hints(), windows=window_metadata1
         )
         assert window_id1
 
@@ -658,10 +655,10 @@ def test_set_window_focus(xsessionp: XSessionp):
         # One more time, for good measure ...
         make_focused(window_id=window_id1)
     finally:
-        kill_all_xclock_instances()
+        kill_all_xlogo_instances()
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_frame_extents(window_id: int, xsession: XSession):
     """Tests that frame extents can be assigned to a window."""
     frame_extents0 = xsession.get_window_frame_extents(window=window_id)
@@ -687,7 +684,7 @@ def test_set_window_frame_extents(window_id: int, xsession: XSession):
     assert xsession.get_window_frame_extents(window=window_id) == frame_extents1
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_position(window_id: int, xsession: XSession):
     """Tests that a window can be moved."""
     position0 = xsession.get_window_position(window=window_id)
@@ -708,7 +705,7 @@ def test_set_window_position(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) != position0
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_set_window_state(window_id: int, xsession: XSession):
     """Tests that a state can be assigned to a given window."""
     state0 = xsession.get_window_state(window=window_id)
@@ -774,7 +771,7 @@ def test_set_window_state(window_id: int, xsession: XSession):
 # TODO: def test_wait_window_visible (xsessionp: XSessionp):
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_destroy(window_id: int, xsession: XSession):
     """Tests that a window can be destroyed."""
     xsession.window_destroy(window=window_id)
@@ -783,7 +780,7 @@ def test_window_destroy(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_kill(window_id: int, xsession: XSession):
     """Tests that a window can be killed."""
     xsession.window_kill(window=window_id)
@@ -792,7 +789,7 @@ def test_window_kill(window_id: int, xsession: XSession):
         xsession.get_window_name(window=window_id)
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_map_unmap(window_id: int, xsession: XSession):
     """Tests that a window can be mapped and unmapped."""
     window = xsession.get_window_by_id(window_id=window_id)
@@ -816,7 +813,7 @@ def test_window_map_unmap(window_id: int, xsession: XSession):
     assert get_window_attributes.map_state == IsViewable
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_maximize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
     state = xsession.get_window_state(window=window_id)
@@ -875,7 +872,7 @@ def test_window_maximize(window_id: int, xsession: XSession):
         assert vertical not in state
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_minimize(window_id: int, xsession: XSession):
     """Tests that a window can be maximized."""
     state = xsession.get_window_state(window=window_id)
@@ -898,7 +895,7 @@ def test_window_minimize(window_id: int, xsession: XSession):
         assert hidden not in state
 
 
-@pytest.mark.xclock
+@pytest.mark.xlogo
 def test_window_moveresize(window_id: int, xsession: XSession):
     """Tests that a window can be moved and resized."""
     dimensions0 = xsession.get_window_dimensions(window=window_id)
@@ -932,11 +929,9 @@ def test_window_moveresize(window_id: int, xsession: XSession):
     assert xsession.get_window_position(window=window_id) == position1
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
-)
-@pytest.mark.xclock
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_GNOME)
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW")
+@pytest.mark.xlogo
 def test_window_raise(xsessionp: XSessionp):
     """Tests that a window can be activated."""
     try:
@@ -948,18 +943,18 @@ def test_window_raise(xsessionp: XSessionp):
             assert window_active
             assert window_active.id == window
 
-        window_metadata0 = xsessionp.launch_command(args=["xclock"])
+        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
         window_id0 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata0
+            hints=get_xlogo_hints(), windows=window_metadata0
         )
         assert window_id0
 
         # After the next command window_id0 will be raised, but was it before (by default)?
         raise_window(window=window_id0)
 
-        window_metadata1 = xsessionp.launch_command(args=["xclock"])
+        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
         window_id1 = xsessionp.guess_window(
-            hints=get_xclock_hints(), windows=window_metadata1
+            hints=get_xlogo_hints(), windows=window_metadata1
         )
         assert window_id1
 
@@ -973,7 +968,7 @@ def test_window_raise(xsessionp: XSessionp):
         # One more time, for good measure ...
         raise_window(window=window_id1)
     finally:
-        kill_all_xclock_instances()
+        kill_all_xlogo_instances()
 
 
 @pytest.mark.skip("The whole point of pytest is to be non-interactive.")

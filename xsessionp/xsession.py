@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-arguments,too-many-lines
 
 """
 A shameless, low quality, adaptation of select portions of tools to python:
@@ -85,7 +85,7 @@ def get_uptime() -> int:
 
 def window_type_safety(func):
     # pylint: disable=protected-access
-    """Ensures that that the window parameter will be of type Window."""
+    """Ensures that the window parameter will be of type Window."""
 
     @wraps(func)
     def wrapper(*args, **kwargs):
@@ -712,7 +712,6 @@ class XSession:
 
     @window_type_safety
     def get_window_properties(self, *, window: Union[int, Window]) -> List[int]:
-        # pylint: disable=no-self-use
         """Retrieves the list of properties from a given window."""
         return window.list_properties()
 
@@ -749,7 +748,7 @@ class XSession:
     def get_window_type(
         self, *, check: bool = None, window: Union[int, Window]
     ) -> Optional[int]:
-        """Retrieves the type of a given window."""
+        """Retrieves the type for a given window."""
         result = self.get_window_property(
             atom=NET_WM_WINDOW_TYPE,
             check=check,

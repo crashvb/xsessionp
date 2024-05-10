@@ -1,15 +1,15 @@
 #!/usr/bin/env python
 
-# pylint: disable=redefined-outer-name
+# pylint: disable=redefined-outer-name,too-many-arguments
 
 """muffin tests."""
 
 import logging
-import os
 
 import pytest
 
-from xsessionp import Muffin, NET_WM_STATE_TILED, TileMode, TileType, WINDOW_MANAGER
+from xsessionp import Muffin
+from xsessionp.muffin import NET_WM_STATE_TILED, TileMode, TileType, WINDOW_MANAGER
 
 from .testutils import allow_xserver_to_sync
 
@@ -18,23 +18,17 @@ LOGGER = logging.getLogger(__name__)
 
 
 def test___init__(muffin: Muffin):
-    """Test that an Muffin can be instantiated."""
+    """Test that a Muffin can be instantiated."""
     assert muffin
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_WM_WINDOW_TILE_INFO",
+@pytest.mark.skip_travis(
+    "xvfb failure: Unable to intern atom: _NET_WM_WINDOW_TILE_INFO"
 )
-@pytest.mark.xclock
+@pytest.mark.require_window_managers(WINDOW_MANAGER)
+@pytest.mark.xlogo
 def test_get_set_window_tile_info(muffin: Muffin, window_id: int):
     """Tests that tile information can be retrieved / assigned to a window."""
-    window_manager_name = muffin.get_window_name(
-        window=muffin.get_window_manager()
-    ).lower()
-    if WINDOW_MANAGER not in window_manager_name:
-        pytest.skip(f"Window manager is not muffin: {window_manager_name}")
-
     tile_info0 = muffin.get_window_tile_info(window=window_id)
     assert not tile_info0
 
@@ -59,20 +53,12 @@ def test_get_set_window_tile_info(muffin: Muffin, window_id: int):
     assert tile_info1 != tile_info0
 
 
-@pytest.mark.skipif(
-    "TRAVIS" in os.environ,
-    reason="xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW",
-)
-@pytest.mark.xclock
+@pytest.mark.skip_travis("xvfb failure: Unable to intern atom: _NET_ACTIVE_WINDOW")
+@pytest.mark.require_window_managers(WINDOW_MANAGER)
+@pytest.mark.xlogo
 def test_window_tile(muffin: Muffin, window_id: int):
     # pylint: disable=too-many-locals,too-many-statements
     """Tests that a window can be tiled."""
-    window_manager_name = muffin.get_window_name(
-        window=muffin.get_window_manager()
-    ).lower()
-    if WINDOW_MANAGER not in window_manager_name:
-        pytest.skip(f"Window manager is not muffin: {window_manager_name}")
-
     atom_net_wm_state_tiled = muffin.get_atom(name=NET_WM_STATE_TILED)
 
     # TODO: Why is set_window_focus() in _send_Keys failing sometimes?

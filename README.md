@@ -115,9 +115,9 @@ Lists managed windows in a given format.
 
 ```bash
 $ xsp list-windows
-ID         XSP:NAME                                         DESKTOP  POSITION    DIMENSIONS    NAME
-119537674  /tmp/tmpqf3bcpzt/xclock.yml:window[0]:262512556  0        [25, 49]    [300, 300]    xclock
-138412043  /tmp/tmpqf3bcpzt/xclock.yml:window[1]:262512711  0        [25, 399]   [300, 40]     xclock
+ID         XSP:NAME                                        DESKTOP  POSITION    DIMENSIONS    NAME
+119537674  /tmp/tmpqf3bcpzt/xlogo.yml:window[0]:262512556  0        [25, 49]    [300, 300]    xlogo
+138412043  /tmp/tmpqf3bcpzt/xlogo.yml:window[1]:262512711  0        [25, 399]   [300, 40]     xlogo
 
 ```
 
@@ -146,18 +146,18 @@ $ xsp ls --qualified
 Aligns the current position of a managed window(s) to match the embedded metadata.
 
 ```bash
-$ xsp reposition-window -t /tmp/tmpqf3bcpzt/xclock.yml:window[0]:262512556
+$ xsp reposition-window -t /tmp/tmpqf3bcpzt/xlogo.yml:window[0]:262512556
 Repositioned window: 119537674
 ```
 
 #### <a name="command_test"></a> test
 
-Perform basic acceptance tests by launching two xclock instances on the current desktop
+Perform basic acceptance tests by launching two xlogo instances on the current desktop
 
 ```bash
 $ xsp test
 ...
-Loading: /tmp/tmpqf3bcpzt/xclock.yml
+Loading: /tmp/tmpqf3bcpzt/xlogo.yml
 ```
 
 #### <a name="command_version"></a> version
@@ -255,7 +255,7 @@ Linux Mint Cinnamon: `BOTTOM`, `LEFT`, `LEFT_BOTTOM`, `LEFT_TOP`, `MAXIMIZE`, `N
 
 | Variable | Default Value | Description |
 | ---------| ------------- | ----------- |
-| XSESSIONP\_CONFIGDIR | ~/.xsessionp | xsessionp configuration directory.
+| XSESSIONP\_CONFIGDIR | ~/.xsessionp | xsessionp configuration directory. |
 
 ## Development
 
