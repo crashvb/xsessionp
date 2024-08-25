@@ -17,15 +17,18 @@ import click
 import yaml
 
 from click.core import Context
-
-from .utils import (
+from crashvb_logging_utilities import (
     LOGGING_DEFAULT,
     logging_options,
+    set_log_levels,
+    version,
+)
+
+from .utils import (
     OutputFormat,
     print_list,
     print_table,
     run,
-    set_log_levels,
     to_list_int,
     to_pattern,
 )
@@ -601,14 +604,7 @@ def test(context: Context):
         sys.exit(1)
 
 
-@cli.command()
-def version():
-    """Displays the utility version."""
-    # Note: This cannot be imported above, as it causes a circular import!
-    from . import __version__  # pylint: disable=import-outside-toplevel
-
-    print(__version__)
-
+cli.add_command(cmd=version)
 
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter

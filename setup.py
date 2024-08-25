@@ -49,7 +49,13 @@ setup(
         ]
     },
     include_package_data=True,
-    install_requires=["click", "flatten-dict", "python-xlib", "pyyaml"],
+    install_requires=[
+        "click",
+        "crashvb-logging-utilities>=0.1.1",
+        "flatten-dict",
+        "python-xlib",
+        "pyyaml",
+    ],
     keywords="instantiation sessions window x11 xsession xsessionp xsp",
     license="Apache License 2.0",
     long_description=open("README.md", encoding="utf-8").read(),
