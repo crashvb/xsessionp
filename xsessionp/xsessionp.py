@@ -104,7 +104,7 @@ class XSessionp(XSession):
         return self.get_window_name(window=window)
 
     def get_window_xsessionp_metadata(
-        self, *, check: bool = None, window: Union[int, Window]
+        self, *, check: Optional[bool] = None, window: Union[int, Window]
     ) -> Optional[str]:
         """Retrieves the desktop containing a given window."""
         self._bootstrap_atoms()
@@ -134,14 +134,14 @@ class XSessionp(XSession):
         return result
 
     def get_window_property_xsp(
-        self, *, check: bool = None, name: str, window: Union[int, Window]
+        self, *, check: Optional[bool] = None, name: str, window: Union[int, Window]
     ) -> Optional[Any]:
         """Retrieves a given property from a window by name using introspection."""
         try:
             method = getattr(self, f"get_window_{name.lower()}", None)
             if method:
                 return method(window=window)
-        except:  # pylint: disable=bare-except
+        except Exception:  # pylint: disable=broad-except
             if self._get_check(check=check):
                 LOGGER.error(
                     'Unable to retrieve property "%s" from window: %s', name, window
@@ -491,7 +491,7 @@ class XSessionp(XSession):
     def set_window_xsessionp_metadata(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         data: str,
         window: Union[int, Window],
         **kwargs,

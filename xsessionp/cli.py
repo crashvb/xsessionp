@@ -21,7 +21,6 @@ from crashvb_logging_utilities import (
     LOGGING_DEFAULT,
     logging_options,
     set_log_levels,
-    version,
 )
 
 from .utils import (

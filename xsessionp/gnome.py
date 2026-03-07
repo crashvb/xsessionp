@@ -5,7 +5,7 @@
 import logging
 
 from enum import Enum
-from typing import Union
+from typing import Optional, Union
 
 from Xlib.xobject.drawable import Window
 from Xlib.X import KeyPress, KeyRelease
@@ -69,7 +69,7 @@ class Gnome(XSession):
     def _window_tile_keyboard(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,
         window: Union[int, Window],
@@ -119,7 +119,7 @@ class Gnome(XSession):
     # def _window_tile_moveresize(
     #     self,
     #     *,
-    #     check: bool = None,
+    #     check: Optional[bool] = None,
     #     tile_mode: TileMode = TileMode.NONE,
     #     tile_type: TileType = TileType.TILED,
     #     window: Union[int, Window],
@@ -129,7 +129,7 @@ class Gnome(XSession):
     # def _window_tile_wmstate(
     #     self,
     #     *,
-    #     check: bool = None,
+    #     check: Optional[bool] = None,
     #     tile_mode: TileMode = TileMode.NONE,
     #     tile_type: TileType = TileType.TILED,
     #     window: Union[int, Window],
@@ -139,7 +139,7 @@ class Gnome(XSession):
     def window_tile(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_method: TileMethod = TileMethod.KEYBOARD,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,

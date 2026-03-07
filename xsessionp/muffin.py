@@ -121,7 +121,7 @@ class Muffin(XSession):
     def _window_tile_keyboard(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,
         window: Union[int, Window],
@@ -191,7 +191,7 @@ class Muffin(XSession):
     def _window_tile_moveresize(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,
         window: Union[int, Window],
@@ -217,7 +217,7 @@ class Muffin(XSession):
     def _window_tile_wmstate(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,
         window: Union[int, Window],
@@ -279,7 +279,7 @@ class Muffin(XSession):
         # self.window_map(check=check, window=window)
 
     def get_window_tile_info(
-        self, *, check: bool = None, window: Union[int, Window]
+        self, *, check: Optional[bool] = None, window: Union[int, Window]
     ) -> Optional[List[int]]:
         """Retrieves the tile information for a given window."""
         result = self.get_window_property(
@@ -293,7 +293,7 @@ class Muffin(XSession):
     def set_window_tile_info(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         custom_snap_size: bool = False,
         desktop: int = None,
         height: int = None,
@@ -341,7 +341,7 @@ class Muffin(XSession):
     def window_tile(
         self,
         *,
-        check: bool = None,
+        check: Optional[bool] = None,
         tile_method: TileMethod = TileMethod.KEYBOARD,
         tile_mode: TileMode = TileMode.NONE,
         tile_type: TileType = TileType.TILED,
