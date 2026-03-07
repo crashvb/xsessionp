@@ -63,14 +63,15 @@ def to_list_int(context, param, value: str) -> List[int]:
     # pylint: disable=unused-argument
     """Constructs a list of integers from a comma-separated string."""
     result = []
-    for val in value:
-        val = re.sub(pattern=r"[^0-9,-]", repl="", string=val)
-        for i in list(filter(len, val.split(","))):
-            if "-" in i:
-                bound_lower, bound_upper = map(int, i.split("-"))
-                result.extend(range(bound_lower, bound_upper + 1))
-            else:
-                result.append(int(i))
+    if value:
+        for val in value:
+            val = re.sub(pattern=r"[^0-9,-]", repl="", string=val)
+            for i in list(filter(len, val.split(","))):
+                if "-" in i:
+                    bound_lower, bound_upper = map(int, i.split("-"))
+                    result.extend(range(bound_lower, bound_upper + 1))
+                else:
+                    result.append(int(i))
     return sorted(list(set(result)), key=int)
 
 
