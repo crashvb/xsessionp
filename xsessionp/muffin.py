@@ -106,7 +106,7 @@ class Muffin(XSession):
         # bottom       = 8,         1,         0,          707,        5120,  707,    0,       0
 
         # Assign _NET_WM_WINDOW_TILE_INFO values based on the table above ...
-        (desktop_width, desktop_height) = self.get_desktop_geometry()
+        desktop_width, desktop_height = self.get_desktop_geometry()
         height = (
             desktop_height if tile_mode.is_full_height() else int(desktop_height / 2)
         )
@@ -203,7 +203,7 @@ class Muffin(XSession):
             return
 
         # TODO: Can anything be done to honor the requested tile_type?
-        (height, position_x, position_y, width) = self._do_math(tile_mode=tile_mode)
+        height, position_x, position_y, width = self._do_math(tile_mode=tile_mode)
         self.window_moveresize(
             check=check,
             gravity=StaticGravity,
@@ -241,7 +241,7 @@ class Muffin(XSession):
 
         # TODO: What do we do about tiled vs snapped?
 
-        (height, position_x, position_y, width) = self._do_math(tile_mode=tile_mode)
+        height, position_x, position_y, width = self._do_math(tile_mode=tile_mode)
         # Note: Unmapping the window allows the properties to be assigned, but they
         #       are "reset" when it is remapped!?!
         # self.window_unmap(check=check, window=window)

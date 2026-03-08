@@ -2,7 +2,6 @@
 
 """CLI tests."""
 
-import json
 import logging
 
 from shutil import rmtree
@@ -25,38 +24,12 @@ from crashvb_logging_utilities import LOGGING_DEFAULT
 
 from .testutils import (
     allow_xserver_to_sync,
-    get_xlogo_hints,
     kill_all_xlogo_instances,
+    launch_windows,
     temporary_environment_variable,
 )
 
 LOGGER = logging.getLogger(__name__)
-
-
-def _launch_two_windows(xsessionp: XSessionp) -> List[int]:
-    window_metadata0 = xsessionp.launch_command(args=["xlogo"])
-    window_id0 = xsessionp.guess_window(
-        hints=get_xlogo_hints(), windows=window_metadata0
-    )
-    allow_xserver_to_sync()
-    assert window_id0
-    xsessionp.set_window_xsessionp_metadata(
-        data=json.dumps({"name": f"test:window[0]:{window_id0}"}), window=window_id0
-    )
-    LOGGER.debug(f"window_id0: {window_id0}")
-
-    window_metadata1 = xsessionp.launch_command(args=["xlogo"])
-    window_id1 = xsessionp.guess_window(
-        hints=get_xlogo_hints(), windows=window_metadata1
-    )
-    allow_xserver_to_sync()
-    assert window_id1
-    xsessionp.set_window_xsessionp_metadata(
-        data=json.dumps({"name": f"test:window[1]:{window_id1}"}), window=window_id1
-    )
-    LOGGER.debug(f"window_id1: {window_id1}")
-
-    return [window_id0, window_id1]
 
 
 def test_get_config_dirs(tmp_path_factory: TempPathFactory):
@@ -99,7 +72,7 @@ def test_get_config_dirs(tmp_path_factory: TempPathFactory):
 @pytest.mark.xlogo
 def test_close_window_empty(cli_runner: CliRunner, xsessionp: XSessionp):
     try:
-        (window_id0, window_id1) = _launch_two_windows(xsessionp)
+        window_id0, window_id1 = launch_windows(xsessionp)
 
         result = cli_runner.invoke(
             cli=command_close_windows,
@@ -119,7 +92,7 @@ def test_close_window_all(
     caplog: LogCaptureFixture, cli_runner: CliRunner, xsessionp: XSessionp
 ):
     try:
-        (window_id0, window_id1) = _launch_two_windows(xsessionp)
+        window_id0, window_id1 = launch_windows(xsessionp)
 
         # Workaround: https://github.com/pallets/click/issues/824
         caplog.set_level(100000)

@@ -613,6 +613,7 @@ def version():
 
     print(__version__)
 
+
 if __name__ == "__main__":
     # pylint: disable=no-value-for-parameter
     cli()

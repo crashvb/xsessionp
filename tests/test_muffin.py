@@ -13,7 +13,6 @@ from xsessionp.muffin import NET_WM_STATE_TILED, TileMode, TileType, WINDOW_MANA
 
 from .testutils import allow_xserver_to_sync
 
-
 LOGGER = logging.getLogger(__name__)
 
 

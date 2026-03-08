@@ -450,12 +450,12 @@ class XSessionp(XSession):
         if self.key_enabled(key="desktop", window=window):
             self.set_window_desktop(desktop=window["desktop"], window=window["id"])
         if self.key_enabled(key="dimensions", window=window):
-            (width, height) = map(
+            width, height = map(
                 int, re.split(pattern=r"x|,", string=window["dimensions"])
             )
             self.set_window_dimensions(height=height, width=width, window=window["id"])
         if self.key_enabled(key="position", window=window):
-            (position_x, position_y) = map(
+            position_x, position_y = map(
                 int, re.split(pattern=r"x|,", string=window["position"])
             )
             self.set_window_position(

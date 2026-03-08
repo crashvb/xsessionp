@@ -3,9 +3,12 @@
 # pylint: disable=redefined-outer-name
 
 """Configures execution of pytest."""
+
 import os
 
 import pytest
+
+from click.testing import CliRunner
 
 from xsessionp import Gnome, Muffin, XSession, XSessionp
 
@@ -76,6 +79,12 @@ def skip_travis(request):
     marker = request.node.get_closest_marker("skip_travis")
     if marker and "TRAVIS" in os.environ:
         pytest.skip(f"Test excluded from travis; {marker.args}")
+
+
+@pytest.fixture
+def cli_runner() -> CliRunner:
+    """Provides a CliRunner instance."""
+    return CliRunner()
 
 
 @pytest.fixture

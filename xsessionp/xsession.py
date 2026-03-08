@@ -213,7 +213,9 @@ class XSession:
         return None
 
     @lru_cache(typed=True)
-    def _get_supported_atom(self, atom: Union[int, str], check: Optional[bool] = None) -> int:
+    def _get_supported_atom(
+        self, atom: Union[int, str], check: Optional[bool] = None
+    ) -> int:
         """Retrieves a supported atom or raises an exception."""
         if NET_SUPPORTED not in self.__dict__:
             self.__dict__[NET_SUPPORTED] = list(
@@ -224,7 +226,9 @@ class XSession:
             raise KeyError(f"Unsupported atom: {atom}")
         return atom
 
-    def _get_window(self, *, check: Optional[bool] = None, window: Union[int, Window]) -> Window:
+    def _get_window(
+        self, *, check: Optional[bool] = None, window: Union[int, Window]
+    ) -> Window:
         """Retrieves a window (object) from a given window or window ID."""
         if isinstance(window, Window):
             return window
@@ -437,7 +441,9 @@ class XSession:
         return False
 
     @contextmanager
-    def catch_error(self, *, check: Optional[bool] = None) -> Generator[CatchError, None, None]:
+    def catch_error(
+        self, *, check: Optional[bool] = None
+    ) -> Generator[CatchError, None, None]:
         """Context manager to catch and raise errors."""
         instance = CatchError(XError)
         yield instance
@@ -694,14 +700,18 @@ class XSession:
 
     @window_type_safety
     def get_window_position(
-        self, *, absolute: bool = True, check: Optional[bool] = None, window: Union[int, Window]
+        self,
+        *,
+        absolute: bool = True,
+        check: Optional[bool] = None,
+        window: Union[int, Window],
     ) -> Optional[List[int]]:
         """
         Retrieves the position of a given window.
         https://stackoverflow.com/a/59221890
         """
         get_geometry = self._get_window_geometry(check=check, window=window)
-        (position_x, position_y) = (get_geometry.x, get_geometry.y)
+        position_x, position_y = (get_geometry.x, get_geometry.y)
         window_root = self.get_window_root()
         while absolute and window.id != window_root.id:
             window = window.query_tree().parent
@@ -773,7 +783,9 @@ class XSession:
         )
         return result.decode(encoding) if result is not None else None
 
-    def get_workarea(self, *, check: Optional[bool] = None) -> Optional[List[List[int]]]:
+    def get_workarea(
+        self, *, check: Optional[bool] = None
+    ) -> Optional[List[List[int]]]:
         """Retrieves the workarea(s) for all desktops."""
         result = self.get_window_property(
             atom=NET_WORKAREA, check=check, property_type=AnyPropertyType
@@ -898,7 +910,12 @@ class XSession:
         )
 
     def set_window_desktop(
-        self, *, check: Optional[bool] = None, desktop: int, window: Union[int, Window], **kwargs
+        self,
+        *,
+        check: Optional[bool] = None,
+        desktop: int,
+        window: Union[int, Window],
+        **kwargs,
     ):
         """Assigns a desktop to a given window."""
         LOGGER.debug(
@@ -1108,7 +1125,11 @@ class XSession:
 
     @window_type_safety
     def window_destroy(
-        self, *, check: Optional[bool] = None, sync: bool = True, window: Union[int, Window]
+        self,
+        *,
+        check: Optional[bool] = None,
+        sync: bool = True,
+        window: Union[int, Window],
     ):
         """Destroys a window."""
         LOGGER.debug("Destroying window: %d", self._get_window_id(window))
@@ -1117,7 +1138,11 @@ class XSession:
 
     @window_type_safety
     def window_kill(
-        self, *, check: Optional[bool] = None, sync: bool = True, window: Union[int, Window]
+        self,
+        *,
+        check: Optional[bool] = None,
+        sync: bool = True,
+        window: Union[int, Window],
     ):
         """Kills a window."""
         LOGGER.debug("Killing window: %d", self._get_window_id(window))
@@ -1126,7 +1151,11 @@ class XSession:
 
     @window_type_safety
     def window_map(
-        self, *, check: Optional[bool] = None, sync: bool = True, window: Union[int, Window]
+        self,
+        *,
+        check: Optional[bool] = None,
+        sync: bool = True,
+        window: Union[int, Window],
     ):
         """Maps a window."""
         LOGGER.debug("Mapping window: %d", self._get_window_id(window))
@@ -1234,7 +1263,7 @@ class XSession:
         gravity = gravity | 4096
         LOGGER.debug("Gravity with flags: %s", format(gravity, "016b"))
 
-        (height, position_x, position_y, width) = map(
+        height, position_x, position_y, width = map(
             lambda x: 0 if x is None else x, [height, position_x, position_y, width]
         )
         self._set_property(
@@ -1247,7 +1276,11 @@ class XSession:
 
     @window_type_safety
     def window_raise(
-        self, *, check: Optional[bool] = None, sync: bool = True, window: Union[int, Window]
+        self,
+        *,
+        check: Optional[bool] = None,
+        sync: bool = True,
+        window: Union[int, Window],
     ):
         """Raises a window."""
         LOGGER.debug("Raising window: %d", self._get_window_id(window))
@@ -1342,7 +1375,11 @@ class XSession:
 
     @window_type_safety
     def window_unmap(
-        self, *, check: Optional[bool] = None, sync: bool = True, window: Union[int, Window]
+        self,
+        *,
+        check: Optional[bool] = None,
+        sync: bool = True,
+        window: Union[int, Window],
     ):
         """Unmaps a window."""
         LOGGER.debug("Unmapping window: %d", self._get_window_id(window))

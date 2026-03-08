@@ -32,9 +32,9 @@ from .testutils import (
     allow_xserver_to_sync,
     get_xlogo_hints,
     kill_all_xlogo_instances,
+    launch_windows,
     WINDOW_MANAGER_FLUXBOX,
 )
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -541,20 +541,10 @@ def test_set_window_active(xsessionp: XSessionp):
             assert window_active
             assert window_active.id == window
 
-        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
-        window_id0 = xsessionp.guess_window(
-            hints=get_xlogo_hints(), windows=window_metadata0
-        )
-        assert window_id0
+        window_id0, window_id1 = launch_windows(xsessionp)
 
         # After the next command window_id0 will be active, but was it before (by default)?
         set_active(window=window_id0)
-
-        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
-        window_id1 = xsessionp.guess_window(
-            hints=get_xlogo_hints(), windows=window_metadata1
-        )
-        assert window_id1
 
         # After the next command window_id1 will be active, but was it before (by default)?
         set_active(window=window_id1)
@@ -634,20 +624,10 @@ def test_set_window_focus(xsessionp: XSessionp):
             allow_xserver_to_sync()
             assert xsessionp.get_window_focus().id == window_id
 
-        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
-        window_id0 = xsessionp.guess_window(
-            hints=get_xlogo_hints(), windows=window_metadata0
-        )
-        assert window_id0
+        window_id0, window_id1 = launch_windows(xsessionp)
 
         # After the next command window_id0 will be focused, but was it before (by default)?
         make_focused(window_id=window_id0)
-
-        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
-        window_id1 = xsessionp.guess_window(
-            hints=get_xlogo_hints(), windows=window_metadata1
-        )
-        assert window_id1
 
         # After the next command window_id1 will be focused, but was it before (by default)?
         make_focused(window_id=window_id1)

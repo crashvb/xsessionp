@@ -14,7 +14,6 @@ from xsessionp.gnome import TileMode, WINDOW_MANAGER
 
 from .testutils import allow_xserver_to_sync
 
-
 LOGGER = logging.getLogger(__name__)
 
 

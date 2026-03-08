@@ -2,6 +2,7 @@
 
 """Utility classes."""
 
+import json
 import logging
 import os
 import re
@@ -10,8 +11,9 @@ import subprocess
 from contextlib import contextmanager
 from re import Pattern
 from time import sleep
-from typing import Dict
+from typing import Dict, List
 
+from xsessionp import XSessionp
 
 LOGGER = logging.getLogger(__name__)
 
@@ -53,3 +55,21 @@ def temporary_environment_variable(key: str, value: str = None):
         os.environ[key] = old
     else:
         os.environ.pop(key, None)
+
+
+def launch_windows(xsessionp: XSessionp, *, count: int = 2) -> List[int]:
+    """Launches xlogo windows with xsessionp metadata."""
+    window_ids = []
+    for i in range(count):
+        window_metadata = xsessionp.launch_command(args=["xlogo"])
+        window_id = xsessionp.guess_window(
+            hints=get_xlogo_hints(), windows=window_metadata
+        )
+        allow_xserver_to_sync()
+        assert window_id
+        xsessionp.set_window_xsessionp_metadata(
+            data=json.dumps({"name": f"test:window[{i}]:{window_id}"}), window=window_id
+        )
+        LOGGER.debug(f"window_id{i}: {window_id}")
+        window_ids.append(window_id)
+    return window_ids
