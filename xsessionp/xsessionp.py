@@ -402,7 +402,7 @@ class XSessionp(XSession):
                     args=window["command"],
                     cwd=start_directory,
                     env=env,
-                    preexec_fn=os.setpgrp(),
+                    preexec_fn=os.setpgrp,
                     search_delay=search_delay,
                     shell=shell,
                     stderr=devnull,
@@ -442,7 +442,7 @@ class XSessionp(XSession):
                 "Only 1 window may defined as focusable; refusing to set focus!"
             )
         # Note: No windows will have an ID if filter(s) resulted in an empty set.
-        elif len(windows) > 0 and id in windows[0]:
+        elif len(windows) > 0 and "id" in windows[0]:
             self.set_window_active(window=windows[0]["id"])
 
     def position_window(self, *, window: TypingWindowConfiguration):
@@ -496,7 +496,7 @@ class XSessionp(XSession):
         window: Union[int, Window],
         **kwargs,
     ):
-        """Assigns a desktop to a given window."""
+        """Assigns xsessionp metadata to a given window."""
         LOGGER.debug(
             "Assigning xsessionp metadata to window %d", self._get_window_id(window)
         )

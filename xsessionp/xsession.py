@@ -119,8 +119,9 @@ class XSession:
     """Interacts with X11 window managers."""
 
     def __del__(self):
-        if self.__dict__["display"] is not None:
-            self.__dict__["display"].close()
+        display = self.__dict__.get("display")
+        if display is not None:
+            display.close()
             del self.__dict__["display"]
 
     def __getattr__(self, item):
@@ -252,7 +253,7 @@ class XSession:
         return None
 
     @staticmethod
-    def _get_window_id(window: Union[int, Window]) -> Window:
+    def _get_window_id(window: Union[int, Window]) -> int:
         """Retrieves the ID of a window (int) from a given window or window ID."""
         return window.id if isinstance(window, Window) else window
 
@@ -420,7 +421,7 @@ class XSession:
                         window = parent
                 except BadWindow:
                     # Ignore state changes during traversal
-                    ...
+                    break
         except XError as exception:
             LOGGER.error("Unable to traverse parents: %s", exception)
             if self._get_check(check=check):
@@ -973,7 +974,7 @@ class XSession:
         window: Union[int, Window],
         **kwargs,
     ):
-        """Assigns a desktop to a given window."""
+        """Assigns frame extents to a given window."""
         LOGGER.debug(
             "Assigning frame extends to window %d: %d %d %d %d",
             self._get_window_id(window),
@@ -1094,7 +1095,7 @@ class XSession:
             LOGGER.debug(
                 "Waiting for window to be focused (try: %d): %s", attempt, window_id
             )
-            window_id_focused = self._get_window_id(window=self.get_window_active())
+            window_id_focused = self._get_window_id(window=self.get_window_focus())
             if window_id == window_id_focused:
                 LOGGER.debug("Window is focused.")
                 return True
@@ -1199,7 +1200,7 @@ class XSession:
         window: Union[int, Window],
         **kwargs,
     ):
-        """Maximizes a given window."""
+        """Minimizes a given window."""
         LOGGER.debug(
             "%s window: %d",
             "Restoring" if inverse else "Minimizing",
