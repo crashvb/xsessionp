@@ -2,17 +2,61 @@
 
 """CLI tests."""
 
+import json
 import logging
 
 from shutil import rmtree
+from typing import List
 
+import pytest
+
+from click.testing import CliRunner
+from _pytest.logging import LogCaptureFixture
 from _pytest.tmpdir import TempPathFactory
 
-from xsessionp.cli import get_config_dirs
+from xsessionp import __version__, XSessionp
+from xsessionp.cli import (
+    get_config_dirs,
+    close_windows as command_close_windows,
+    version as command_version,
+    TypingContextObject,
+)
+from crashvb_logging_utilities import LOGGING_DEFAULT
 
-from .testutils import temporary_environment_variable
+from .testutils import (
+    allow_xserver_to_sync,
+    get_xlogo_hints,
+    kill_all_xlogo_instances,
+    temporary_environment_variable,
+)
 
 LOGGER = logging.getLogger(__name__)
+
+
+def _launch_two_windows(xsessionp: XSessionp) -> List[int]:
+    window_metadata0 = xsessionp.launch_command(args=["xlogo"])
+    window_id0 = xsessionp.guess_window(
+        hints=get_xlogo_hints(), windows=window_metadata0
+    )
+    allow_xserver_to_sync()
+    assert window_id0
+    xsessionp.set_window_xsessionp_metadata(
+        data=json.dumps({"name": f"test:window[0]:{window_id0}"}), window=window_id0
+    )
+    LOGGER.debug(f"window_id0: {window_id0}")
+
+    window_metadata1 = xsessionp.launch_command(args=["xlogo"])
+    window_id1 = xsessionp.guess_window(
+        hints=get_xlogo_hints(), windows=window_metadata1
+    )
+    allow_xserver_to_sync()
+    assert window_id1
+    xsessionp.set_window_xsessionp_metadata(
+        data=json.dumps({"name": f"test:window[1]:{window_id1}"}), window=window_id1
+    )
+    LOGGER.debug(f"window_id1: {window_id1}")
+
+    return [window_id0, window_id1]
 
 
 def test_get_config_dirs(tmp_path_factory: TempPathFactory):
@@ -50,3 +94,61 @@ def test_get_config_dirs(tmp_path_factory: TempPathFactory):
             assert tmpdir_xdg_config_home in config_dirs
             assert tmpdir_xsessionp_configdir in config_dirs
     rmtree(tmpdir_home, ignore_errors=True)
+
+
+@pytest.mark.xlogo
+def test_close_window_empty(cli_runner: CliRunner, xsessionp: XSessionp):
+    try:
+        (window_id0, window_id1) = _launch_two_windows(xsessionp)
+
+        result = cli_runner.invoke(
+            cli=command_close_windows,
+            obj=TypingContextObject(verbosity=LOGGING_DEFAULT, xsessionp=xsessionp),
+        )
+        assert result.exit_code == 0
+        assert not result.output
+
+        assert xsessionp.get_window_name(window=window_id0)
+        assert xsessionp.get_window_name(window=window_id1)
+    finally:
+        kill_all_xlogo_instances()
+
+
+@pytest.mark.xlogo
+def test_close_window_all(
+    caplog: LogCaptureFixture, cli_runner: CliRunner, xsessionp: XSessionp
+):
+    try:
+        (window_id0, window_id1) = _launch_two_windows(xsessionp)
+
+        # Workaround: https://github.com/pallets/click/issues/824
+        caplog.set_level(100000)
+
+        result = cli_runner.invoke(
+            cli=command_close_windows,
+            args=["--all"],
+            obj=TypingContextObject(verbosity=LOGGING_DEFAULT, xsessionp=xsessionp),
+        )
+        caplog.set_level(logging.DEBUG)
+        assert result.exit_code == 0
+        assert not result.output
+
+        allow_xserver_to_sync()
+        xsessionp.get_display().flush()
+        allow_xserver_to_sync()
+
+        with pytest.raises(RuntimeError):
+            xsessionp.get_window_name(window=window_id0)
+        with pytest.raises(RuntimeError):
+            xsessionp.get_window_name(window=window_id1)
+    finally:
+        kill_all_xlogo_instances()
+
+
+def test_version(cli_runner: CliRunner, xsessionp: XSessionp):
+    result = cli_runner.invoke(
+        cli=command_version,
+        obj=TypingContextObject(verbosity=LOGGING_DEFAULT, xsessionp=xsessionp),
+    )
+    assert result.exit_code == 0
+    assert __version__ in result.output
