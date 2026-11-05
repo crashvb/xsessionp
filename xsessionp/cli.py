@@ -425,7 +425,8 @@ def load(context: Context, config: List[str], index: List[int], name: List[Patte
     If both indices and names are provided, indices have higher precedence.
 
     If a window does not have a configured name, a predictable name will be generated following the pattern
-    "{path}:window[{index}]:{get_uptime()}" prior to selection filtering.
+    "{path}:window[{index}]:{timestamp}" prior to selection filtering, where timestamp is a local monotonic
+    timestamp in milliseconds.
     """
     ctx = get_context_object(context=context)
     try:

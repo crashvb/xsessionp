@@ -14,7 +14,7 @@ from enum import Enum
 from multiprocessing import Process
 from pathlib import Path
 from re import Pattern
-from time import sleep
+from time import monotonic_ns, sleep
 from typing import Any, cast, Dict, List, Optional, TypedDict, Union
 
 import yaml
@@ -37,7 +37,7 @@ from .muffin import (
     TileType as TileTypeMuffin,
     WINDOW_MANAGER as WINDOW_MANAGER_MUFFIN,
 )
-from .xsession import get_uptime, XSession
+from .xsession import XSession
 
 EXTENSIONS = ["json", "yaml", "yml"]
 LOGGER = logging.getLogger(__name__)
@@ -118,7 +118,7 @@ class XSessionp(XSession):
     @staticmethod
     def generate_name(*, index: int, path: Path) -> str:
         """Generates a predictable name from a given set of context parameters."""
-        return f"{path}:window[{index}]:{get_uptime()}"
+        return f"{path}:window[{index}]:{monotonic_ns() // 1_000_000}"
 
     def get_window_properties_xsp(self) -> List[str]:
         """Retrieves the list of valid property names that can be retrieved from a window using introspection."""

@@ -14,11 +14,10 @@ import pytest
 from Xlib.display import Display
 from Xlib.error import BadAtom
 from Xlib.xobject.drawable import Window
-from Xlib.X import IsUnmapped, IsViewable, NONE
+from Xlib.X import CurrentTime, IsUnmapped, IsViewable, NONE
 
 from xsessionp import (
     ACTION_REMOVE,
-    get_uptime,
     NET_WM_STATE_MAXIMIZED_HORZ,
     NET_WM_STATE_MAXIMIZED_VERT,
     XSession,
@@ -53,7 +52,7 @@ def test___getattr____setattr__(xsession: XSession):
         )
 
     def set_desktop(*, desktop: int):
-        xsession._NET_CURRENT_DESKTOP = [desktop, get_uptime()]
+        xsession._NET_CURRENT_DESKTOP = [desktop, CurrentTime]
         allow_xserver_to_sync()
         assert xsession._NET_CURRENT_DESKTOP[0] == desktop
 
@@ -189,16 +188,6 @@ def test_get_screen_count(xsession: XSession):
     count = xsession.get_screen_count()
     assert isinstance(count, int)
     assert count is not None
-
-
-def test_get_uptime():
-    """Test that uptime can be retrieved."""
-    time0 = get_uptime()
-    assert time0
-    allow_xserver_to_sync()
-    time1 = get_uptime()
-    assert time1
-    assert time1 != time0
 
 
 @pytest.mark.xlogo

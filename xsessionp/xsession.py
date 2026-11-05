@@ -14,7 +14,7 @@ import logging
 
 from contextlib import contextmanager
 from functools import lru_cache, wraps
-from time import perf_counter, sleep
+from time import sleep
 from typing import Any, Callable, Generator, List, NamedTuple, Optional, Union
 
 from Xlib.display import Display
@@ -30,6 +30,7 @@ from Xlib.X import (
     AnyPropertyType,
     Button1,
     ButtonReleaseMask,
+    CurrentTime,
     GrabModeAsync,
     GrabModeSync,
     GrabSuccess,
@@ -75,12 +76,6 @@ from .icccm import WM_CHANGE_STATE, WM_CLASS, WM_NAME
 LOGGER = logging.getLogger(__name__)
 # TODO: Reconcile why documentation states "latin-1", while python-xlib seems to return "utf-8"?!?
 XSESSION_ENCODING = "utf-8"
-
-
-def get_uptime() -> int:
-    """Returns the system uptime in milliseconds."""
-    # return int(float(Path("/proc/uptime").read_text(encoding="utf-8").split()[0]) * 1000)
-    return round(perf_counter() * 1000)
 
 
 def window_type_safety(func):
@@ -310,8 +305,6 @@ class XSession:
                     event_type=key_input.event_type,
                     root=window,
                     self=display,
-                    # TODO: Why doesn't providing time work?
-                    # time=get_uptime(),
                 )
                 sleep(delay)
 
@@ -844,7 +837,7 @@ class XSession:
         # pylint: disable=attribute-defined-outside-init,invalid-name
         """Assigns the active desktop."""
         LOGGER.debug("Assigning current desktop to: %d", desktop)
-        self._NET_CURRENT_DESKTOP = [desktop, get_uptime()]
+        self._NET_CURRENT_DESKTOP = [desktop, CurrentTime]
 
     def set_desktop_count(self, *, count: int):
         # pylint: disable=attribute-defined-outside-init,invalid-name
@@ -892,7 +885,7 @@ class XSession:
         self._set_property(
             atom=NET_ACTIVE_WINDOW,
             check=check,
-            data=[SOURCE_PAGER, get_uptime(), window_id],
+            data=[SOURCE_PAGER, CurrentTime, window_id],
             window=window,
             **kwargs,
         )
@@ -905,7 +898,7 @@ class XSession:
         self._set_property(
             atom=NET_CLOSE_WINDOW,
             check=check,
-            data=[get_uptime(), SOURCE_PAGER],
+            data=[CurrentTime, SOURCE_PAGER],
             window=window,
             **kwargs,
         )
@@ -960,7 +953,7 @@ class XSession:
         LOGGER.debug("Assigning focus to window: %d", self._get_window_id(window))
         with self.catch_error(check=check) as cerror, self.display_sync(sync=sync):
             window.set_input_focus(
-                revert_to=revert_to, time=get_uptime(), onerror=cerror
+                revert_to=revert_to, time=CurrentTime, onerror=cerror
             )
 
     def set_window_frame_extents(
@@ -1320,7 +1313,7 @@ class XSession:
                     keyboard_mode=GrabModeAsync,
                     owner_events=False,
                     pointer_mode=GrabModeSync,
-                    time=get_uptime(),
+                    time=CurrentTime,
                 )
                 if grab_pointer != GrabSuccess:
                     raise RuntimeError(f"Grab pointer not successful: {grab_pointer}")
@@ -1339,7 +1332,7 @@ class XSession:
         LOGGER.debug("Pointer grabbed successfully.")
 
         with self.catch_error(check=check) as cerror:
-            display.allow_events(mode=SyncPointer, onerror=cerror, time=get_uptime())
+            display.allow_events(mode=SyncPointer, onerror=cerror, time=CurrentTime)
         with self.catch_error(check=check) as cerror:
             window_root.change_attributes(event_mask=ButtonReleaseMask, onerror=cerror)
 
@@ -1352,7 +1345,7 @@ class XSession:
             LOGGER.debug("Received event: %s", event)
         finally:
             with self.catch_error(check=check) as cerror:
-                display.ungrab_pointer(onerror=cerror, time=get_uptime())
+                display.ungrab_pointer(onerror=cerror, time=CurrentTime)
             with self.catch_error(check=check) as cerror:
                 cursor.free(onerror=cerror)
 
