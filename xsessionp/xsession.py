@@ -16,6 +16,7 @@ from contextlib import contextmanager
 from functools import lru_cache, wraps
 from time import sleep
 from typing import Any, Callable, Generator, List, NamedTuple, Optional, Union
+from weakref import finalize
 
 from Xlib.display import Display
 from Xlib.error import BadAtom, BadWindow, CatchError, XError
@@ -112,12 +113,6 @@ class TypingKeyInput(NamedTuple):
 class XSession:
     # pylint: disable=too-many-public-methods
     """Interacts with X11 window managers."""
-
-    def __del__(self):
-        display = self.__dict__.get("display")
-        if display is not None:
-            display.close()
-            del self.__dict__["display"]
 
     def __getattr__(self, item):
         if str(item).lower().startswith("_net_"):
@@ -526,7 +521,10 @@ class XSession:
     def get_display(self) -> Display:
         """Retrieves the X11 display."""
         if self.__dict__["display"] is None:
-            self.__dict__["display"] = Display()
+            display = Display()
+            # Close after the last reference; the callback must not retain display itself.
+            finalize(display, display.display.close)
+            self.__dict__["display"] = display
         return self.__dict__["display"]
 
     def get_screen(self, *, screen_number: int = None) -> DictWrapper:

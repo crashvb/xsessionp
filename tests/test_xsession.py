@@ -4,6 +4,7 @@
 
 """xsession tests."""
 
+import gc
 import logging
 import os
 
@@ -19,6 +20,8 @@ from Xlib.Xatom import ATOM
 
 from xsessionp import (
     ACTION_REMOVE,
+    Gnome,
+    Muffin,
     NET_WM_STATE_MAXIMIZED_HORZ,
     NET_WM_STATE_MAXIMIZED_VERT,
     XSession,
@@ -48,6 +51,28 @@ LOGGER = logging.getLogger(__name__)
 def test___init__(xsession: XSession):
     """Test that an XSession can be instantiated."""
     assert xsession
+
+
+@pytest.mark.parametrize("session_class", [Gnome, Muffin, XSessionp])
+def test_shared_display_cleanup(session_class):
+    """Tests that a shared display closes only after its last reference is released."""
+    session = XSession()
+    display = session.get_display()
+    socket = display.display.socket
+    wrapper = session_class(xsession=session)
+    assert wrapper.get_display() is display
+
+    del wrapper
+    gc.collect()
+    display.sync()
+
+    del session
+    gc.collect()
+    display.sync()
+
+    del display
+    gc.collect()
+    assert socket.fileno() == -1
 
 
 def test___getattr____setattr__(xsession: XSession):
