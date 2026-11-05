@@ -15,6 +15,7 @@ from Xlib.display import Display
 from Xlib.error import BadAtom
 from Xlib.xobject.drawable import Window
 from Xlib.X import CurrentTime, IsUnmapped, IsViewable, NONE
+from Xlib.Xatom import ATOM
 
 from xsessionp import (
     ACTION_REMOVE,
@@ -23,7 +24,13 @@ from xsessionp import (
     XSession,
     XSessionp,
 )
-from xsessionp.ewmh import ACTION_TOGGLE, NET_NUMBER_OF_DESKTOPS, NET_WM_STATE_HIDDEN
+from xsessionp.ewmh import (
+    ACTION_TOGGLE,
+    NET_NUMBER_OF_DESKTOPS,
+    NET_WM_STATE_HIDDEN,
+    NET_WM_VISIBLE_NAME,
+    NET_WM_WINDOW_TYPE,
+)
 from xsessionp.gnome import WINDOW_MANAGER as WINDOW_MANAGER_GNOME
 from xsessionp.muffin import WINDOW_MANAGER as WINDOW_MANAGER_MUFFIN
 
@@ -339,18 +346,50 @@ def test_get_window_state(window_id: int, xsession: XSession):
     assert atom_value in state1
 
 
-@pytest.mark.skip("Test scenario refinement needed.")
-@pytest.mark.xlogo
-def test_get_window_type(window_id: int, xsession: XSession):
-    """Tests that the type can be retrieved for a window."""
-    assert xsession.get_window_type(window=window_id)
+@pytest.mark.parametrize(
+    "type_names,preferred_name",
+    [
+        ([], None),
+        (["_NET_WM_WINDOW_TYPE_NORMAL"], "_NET_WM_WINDOW_TYPE_NORMAL"),
+        (
+            ["_NET_WM_WINDOW_TYPE_UTILITY", "_NET_WM_WINDOW_TYPE_NORMAL"],
+            "_NET_WM_WINDOW_TYPE_UTILITY",
+        ),
+    ],
+)
+def test_get_window_type(xsession: XSession, type_names, preferred_name):
+    """Tests missing types and retrieval of the first preferred type."""
+    display = xsession.get_display()
+    property_atom = display.intern_atom(NET_WM_WINDOW_TYPE)
+    window = xsession.get_window_root().create_window(0, 0, 1, 1, 0, 0)
+    try:
+        assert xsession.get_window_type(window=window) is None
+
+        types = [display.intern_atom(name) for name in type_names]
+        window.change_property(property_atom, ATOM, 32, types)
+        display.sync()
+
+        expected = display.intern_atom(preferred_name) if preferred_name else None
+        assert xsession.get_window_type(window=window) == expected
+    finally:
+        window.destroy()
+        display.sync()
 
 
-@pytest.mark.skip("Test scenario refinement needed.")
 @pytest.mark.xlogo
-def test_get_window_visible_name(window_id: int, xsession: XSession):
-    """Tests that the visible name can be retrieved for a window."""
-    assert xsession.get_window_visible_name(window=window_id) == "xlogo"
+@pytest.mark.parametrize("title", ["Displayed title", "Visible Caf\u00e9", ""])
+def test_get_window_visible_name(window_id: int, xsession: XSession, title: str):
+    """Tests reading back the visible title assigned to an xlogo window."""
+    display = xsession.get_display()
+    property_atom = display.intern_atom(NET_WM_VISIBLE_NAME)
+    utf8_string = display.intern_atom("UTF8_STRING")
+    window = xsession.get_window_by_id(window_id=window_id)
+
+    window.change_property(property_atom, utf8_string, 8, title.encode("utf-8"))
+    display.sync()
+    allow_xserver_to_sync()
+    assert window.get_attributes().map_state == IsViewable
+    assert xsession.get_window_visible_name(window=window_id) == title
 
 
 def test_get_workarea(xsession: XSession):

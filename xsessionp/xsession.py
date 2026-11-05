@@ -752,14 +752,14 @@ class XSession:
     def get_window_type(
         self, *, check: Optional[bool] = None, window: Union[int, Window]
     ) -> Optional[int]:
-        """Retrieves the type for a given window."""
+        """Retrieves the preferred type for a given window."""
         result = self.get_window_property(
             atom=NET_WM_WINDOW_TYPE,
             check=check,
             property_type=AnyPropertyType,
             window=window,
         )
-        return int(result) if result is not None else None
+        return int(result[0]) if result else None
 
     def get_window_visible_name(
         self,
