@@ -61,8 +61,8 @@ def launch_windows(xsessionp: XSessionp, *, count: int = 2) -> List[int]:
     """Launches xlogo windows with xsessionp metadata."""
     window_ids = []
     for i in range(count):
-        window_metadata = xsessionp.launch_command(args=["xlogo"])
-        window_id = xsessionp.guess_window(
+        _, window_metadata = xsessionp.launch_command(args=["xlogo"])
+        window_id = xsessionp.guess_window_delta(
             hints=get_xlogo_hints(), windows=window_metadata
         )
         allow_xserver_to_sync()

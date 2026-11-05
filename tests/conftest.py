@@ -102,9 +102,9 @@ def muffin() -> Muffin:
 @pytest.fixture()
 def window_id(xsessionp: XSessionp) -> int:
     """Provides the window ID of a launched xlogo instance."""
-    window_metadata = xsessionp.launch_command(args=["xlogo"])
+    _, window_metadata = xsessionp.launch_command(args=["xlogo"])
     try:
-        yield xsessionp.guess_window(hints=get_xlogo_hints(), windows=window_metadata)
+        yield xsessionp.guess_window_delta(hints=get_xlogo_hints(), windows=window_metadata)
     finally:
         kill_all_xlogo_instances()
 

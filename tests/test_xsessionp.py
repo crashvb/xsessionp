@@ -3,6 +3,8 @@
 """xsessionp tests."""
 
 import logging
+import os
+import subprocess
 
 from pathlib import Path
 from time import time
@@ -10,11 +12,12 @@ from time import time
 import pytest
 from _pytest.logging import LogCaptureFixture
 
-from xsessionp import XSessionp
+from xsessionp import XSessionp, XSESSIONP_ENV_NAME
 
 from .testutils import (
     get_xlogo_hints,
     kill_all_xlogo_instances,
+    WINDOW_MANAGER_FLUXBOX,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -112,13 +115,43 @@ def test_get_set_window_xsessionp_metadata(window_id: int, xsessionp: XSessionp)
 def test_launch_command_guess_window(xsessionp: XSessionp):
     """Tests that we can guess for a window (at least sometimes ...)."""
     try:
-        potential_windows = xsessionp.launch_command(args=["xlogo"])
-        window_id = xsessionp.guess_window(
+        pid, potential_windows = xsessionp.launch_command(args=["xlogo"])
+        assert isinstance(pid, int)
+        assert pid > 0
+        assert Path(f"/proc/{pid}/comm").read_text().strip() == "xlogo"
+        window_id = xsessionp.guess_window_delta(
             hints=get_xlogo_hints(), windows=potential_windows
         )
         assert window_id
     finally:
         kill_all_xlogo_instances()
+
+
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX)
+@pytest.mark.xlogo
+@pytest.mark.parametrize("command", [["xlogo"], ["/bin/sh", "-c", "xlogo & wait"]])
+def test_guess_window_pid(xsessionp: XSessionp, command):
+    """Tests identifying an xlogo window owned by the command or its child."""
+    try:
+        env = os.environ.copy()
+        env[XSESSIONP_ENV_NAME] = f"{__name__}:{time()}"
+        pid, _ = xsessionp.launch_command(args=command, env=env)
+        assert isinstance(pid, int)
+        assert pid > 0
+
+        window_id = xsessionp.guess_window_pid(pid=pid)
+        assert window_id
+        assert xsessionp.get_window_name(window=window_id) == "xlogo"
+    finally:
+        kill_all_xlogo_instances()
+
+
+@pytest.mark.exclude_window_managers(WINDOW_MANAGER_FLUXBOX)
+def test_guess_window_pid_process_error(xsessionp: XSessionp):
+    """Tests that an exited process leaves detection to the delta fallback."""
+    with subprocess.Popen(["/bin/true"]) as process:
+        process.wait()
+    assert xsessionp.guess_window_pid(pid=process.pid) is None
 
 
 # TODO: def test_load(xsessionp: XSessionp):

@@ -8,19 +8,19 @@ import logging
 import os
 import re
 import subprocess
-import sys
 
 from enum import Enum
-from multiprocessing import Process
 from pathlib import Path
 from re import Pattern
 from time import monotonic_ns, sleep
-from typing import Any, cast, Dict, List, Optional, TypedDict, Union
+from typing import Any, cast, Dict, List, Optional, Tuple, TypedDict, Union
 
+import psutil
 import yaml
 
 from flatten_dict import flatten, unflatten
-from Xlib.error import BadWindow
+from Xlib.error import BadWindow, XError
+from Xlib.ext import res
 from Xlib.xobject.drawable import Window
 from Xlib.X import AnyPropertyType
 from Xlib.Xatom import STRING
@@ -43,6 +43,7 @@ EXTENSIONS = ["json", "yaml", "yml"]
 LOGGER = logging.getLogger(__name__)
 XSESSION = None
 
+XSESSIONP_ENV_NAME = "XSP_NAME"
 XSESSIONP_METADATA = "_XSESSIONP_METADATA"
 XSESSIONP_PREFIX = "xsp:"
 
@@ -149,7 +150,7 @@ class XSessionp(XSession):
                 raise
         return None
 
-    def guess_window(
+    def guess_window_delta(
         self,
         *,
         sane: bool = True,
@@ -243,8 +244,62 @@ class XSessionp(XSession):
             "Too many matching windows: %d; try tightening constrains!", len(matches)
         )
 
-        LOGGER.debug("Best effort at an ID-based match ...")
+        LOGGER.debug("Best effort at an delta-based match ...")
         # The greater the id, the later the window was created?!? ¯\_(ツ)_/¯
+        return sorted(matches, reverse=True)[0]
+
+    def guess_window_pid(self, *, pid: int) -> Optional[int]:
+        """Finds a managed window owned by the tagged process or its descendants."""
+        display = self.get_display()
+        try:
+            process = psutil.Process(pid)
+            name = process.environ().get(XSESSIONP_ENV_NAME)
+            if not name:
+                LOGGER.debug(
+                    "Process %d has no %s environment variable.",
+                    pid,
+                    XSESSIONP_ENV_NAME,
+                )
+                return None
+            processes = [process, *process.children(recursive=True)]
+            pids = {
+                process.pid
+                for process in processes
+                if process.environ().get(XSESSIONP_ENV_NAME) == name
+            }
+
+            matches = []
+            for window_id in self.get_client_list() or []:
+                reply = display.res_query_client_ids(
+                    [{"client": window_id, "mask": res.LocalClientPIDMask}]
+                )
+                if any(
+                    entry.spec.mask == res.LocalClientPIDMask
+                    and len(entry.value) == 1
+                    and entry.value[0] in pids
+                    for entry in reply.ids
+                ):
+                    matches.append(window_id)
+        except (psutil.Error, XError) as exception:
+            LOGGER.error("Unable to inspect window(s) for process %d: %s", pid, exception)
+            return None
+
+        if not matches:
+            LOGGER.warning("No matching windows!")
+            return None
+        if len(matches) == 1:
+            LOGGER.debug(
+                "Found window %d for process tree rooted at %d.", matches[0], pid
+            )
+            return matches[0]
+
+        LOGGER.warning(
+            "Too many matching windows: %d for process tree rooted at %d!",
+            len(matches),
+            pid,
+        )
+        LOGGER.debug("Best effort at an pid-based match ...")
+        # The deeper the child process, the later the window was created?!? ¯\_(ツ)_/¯
         return sorted(matches, reverse=True)[0]
 
     @staticmethod
@@ -265,28 +320,16 @@ class XSessionp(XSession):
 
     def launch_command(
         self, *, delay: int = 1, search_delay: float = 0, tries: int = 3, **kwargs
-    ) -> List[Window]:
+    ) -> Tuple[int, List[Window]]:
         """
-        Executes a command and attempts to identify the window(s) that were created as a result.
-        https://stackoverflow.com/a/13096649
+        Executes a command and returns its PID and the windows created as a result.
         """
         windows_before = self.search(prune_matches=False)
 
-        def launcher(count: int = 0) -> Optional[Process]:
-            """Nested process wrapper intended to orphan a child process."""
-            if count:
-                with subprocess.Popen(**kwargs) as process:
-                    LOGGER.debug("Started pid: %s", process.pid)
-                    sys.exit()
-
-            process = Process(args=(count + 1,), name=f"child{count}", target=launcher)
-            process.daemon = False
-            process.start()
-            return process
-
-        process_launcher = launcher()
+        kwargs.setdefault("start_new_session", True)
+        process = subprocess.Popen(**kwargs)
+        LOGGER.debug("Started pid: %s", process.pid)
         sleep(0.1)
-        process_launcher.terminate()
 
         result = []
         if search_delay != 0.0:
@@ -300,7 +343,7 @@ class XSessionp(XSession):
                 break
             sleep(delay)
 
-        return result
+        return process.pid, result
 
     def load(
         self, *, indices: List[int] = None, names: List[Pattern] = None, path: Path
@@ -365,6 +408,7 @@ class XSessionp(XSession):
                 env = os.environ.copy()
             if self.key_enabled(key="environment", window=window):
                 env.update(window["environment"])
+            env[XSESSIONP_ENV_NAME] = window["name"]
 
             # Construct: hint_method ...
             hint_method = HintMethod.AND
@@ -398,24 +442,26 @@ class XSessionp(XSession):
             # Start the process, find the window ...
             LOGGER.debug("Executing: %s", window["command"])
             with open(os.devnull, "wb") as devnull:
-                potential_windows = self.launch_command(
+                pid, potential_windows = self.launch_command(
                     args=window["command"],
                     cwd=start_directory,
                     env=env,
-                    preexec_fn=os.setpgrp,
                     search_delay=search_delay,
                     shell=shell,
                     stderr=devnull,
                     stdout=devnull,
                 )
             # Note: Loop variables in python are allocated from the heap =/
-            config["windows"][i]["id"] = window["id"] = self.guess_window(
-                hint_method=hint_method, hints=hints, windows=potential_windows
-            )
-            LOGGER.debug("Guessed window[%s] ID: %s", i, window["id"])
+            config["windows"][i]["id"] = window["id"] = self.guess_window_pid(pid=pid)
+            LOGGER.debug("Guessed window[%s] ID [pid]: %s", i, window["id"])
             if window["id"] is None:
-                LOGGER.error("Unable to locate spawned window!")
-                continue
+                config["windows"][i]["id"] = window["id"] = self.guess_window_delta(
+                    hint_method=hint_method, hints=hints, windows=potential_windows
+                )
+                LOGGER.debug("Guessed window[%s] ID [delta]: %s", i, window["id"])
+                if window["id"] is None:
+                    LOGGER.error("Unable to locate spawned window!")
+                    continue
 
             # Add metadata to the new window  ...
             self.set_window_xsessionp_metadata(

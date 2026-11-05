@@ -955,8 +955,8 @@ def test_window_raise(xsessionp: XSessionp):
             assert window_active
             assert window_active.id == window
 
-        window_metadata0 = xsessionp.launch_command(args=["xlogo"])
-        window_id0 = xsessionp.guess_window(
+        _, window_metadata0 = xsessionp.launch_command(args=["xlogo"])
+        window_id0 = xsessionp.guess_window_delta(
             hints=get_xlogo_hints(), windows=window_metadata0
         )
         assert window_id0
@@ -964,8 +964,8 @@ def test_window_raise(xsessionp: XSessionp):
         # After the next command window_id0 will be raised, but was it before (by default)?
         raise_window(window=window_id0)
 
-        window_metadata1 = xsessionp.launch_command(args=["xlogo"])
-        window_id1 = xsessionp.guess_window(
+        _, window_metadata1 = xsessionp.launch_command(args=["xlogo"])
+        window_id1 = xsessionp.guess_window_delta(
             hints=get_xlogo_hints(), windows=window_metadata1
         )
         assert window_id1
