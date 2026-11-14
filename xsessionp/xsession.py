@@ -47,11 +47,12 @@ from Xlib.X import (
 from Xlib.Xatom import ATOM, CARDINAL, STRING
 from Xlib.Xcursorfont import crosshair as xcf_crosshair
 from Xlib.XK import string_to_keysym
-from Xlib.Xutil import IconicState
+from Xlib.Xutil import IconicState, PResizeInc
 
 from .ewmh import (
     ACTION_ADD,
     ACTION_REMOVE,
+    ALL_DESKTOPS,
     NET_ACTIVE_WINDOW,
     NET_CLOSE_WINDOW,
     NET_FRAME_EXTENTS,
@@ -226,6 +227,22 @@ class XSession:
         return self.get_window_by_id(check=check, window_id=window)
 
     @window_type_safety
+    def _get_window_dimensions_variance(
+        self, *, check: Optional[bool] = None, window: Union[int, Window]
+    ) -> List[int]:
+        """Retrieves width/height tolerances smaller than each resize increment."""
+        try:
+            hints = window.get_wm_normal_hints()
+        except XError:
+            if self._get_check(check=check):
+                raise
+            return [0, 0]
+
+        if hints is None or not hints["flags"] & PResizeInc:
+            return [0, 0]
+        return [max(0, hints["width_inc"] - 1), max(0, hints["height_inc"] - 1)]
+
+    @window_type_safety
     def _get_window_geometry(
         self, *, check: Optional[bool] = None, window: Union[int, Window]
     ) -> Optional[GetGeometry]:
@@ -246,6 +263,17 @@ class XSession:
     def _get_window_id(window: Union[int, Window]) -> int:
         """Retrieves the ID of a window (int) from a given window or window ID."""
         return window.id if isinstance(window, Window) else window
+
+    @window_type_safety
+    def _get_window_position_variance(
+        self, *, check: Optional[bool] = None, window: Union[int, Window]
+    ) -> List[int]:
+        """Retrieves x/y tolerances from the largest frame extent on each axis."""
+        extents = self.get_window_frame_extents(check=False, window=window)
+        if extents is None or len(extents) != 4:
+            return [0, 0]
+        left, right, top, bottom = extents
+        return [max(0, left, right), max(0, top, bottom)]
 
     def _remove_property(
         self,
@@ -279,29 +307,58 @@ class XSession:
 
         # Keyboard events only seems to work when the desktop and window are both active, AND the window is focused.
         # This is counterintuitive, as isn't that the whole point of "focused" vs "active"??? ...
-        self.get_display().sync()
-        self.set_window_active(check=check, window=window)
-        self.wait_window_active(window=window)
-        self.set_window_focus(check=check, sync=sync, window=window)
-        self.wait_window_focused(window=window)
+        desktop_original = self.get_desktop_active()
+        desktop_window = self.get_window_desktop(check=check, window=window)
+        LOGGER.debug(f"{desktop_original} {desktop_window}")
 
-        display = self.get_display()
-        for key_input in key_inputs:
-            keycode = key_input.keycode(display=display)
-            LOGGER.debug(
-                "Sending Key Input: %s %s (%s)",
-                key_input.event_type,
-                key_input.key,
-                keycode,
+        if desktop_original is None or desktop_window is None:
+            LOGGER.error(
+                "Unable to retrieve desktop metadata of window %d: %s",
+                self._get_window_id(window)
             )
-            with self.display_sync(sync=sync):
-                fake_input(
-                    detail=keycode,
-                    event_type=key_input.event_type,
-                    root=window,
-                    self=display,
+            if self._get_check(check=check):
+                raise RuntimeError("Unable to determine desktop!")
+
+        # 0xFFFFFFFF means the window belongs to all desktops.
+        switch_needed = (
+                desktop_window != ALL_DESKTOPS
+                and desktop_window != desktop_original
+        )
+
+        try:
+            if switch_needed and desktop_window is not None:
+                self.set_desktop_active(desktop=desktop_window)
+                self.wait_desktop_active(desktop=desktop_window)
+            else:
+                LOGGER.debug("Skipping desktop switch")
+
+            self.get_display().sync()
+            self.set_window_active(check=check, window=window)
+            self.wait_window_active(window=window)
+            self.set_window_focus(check=check, sync=sync, window=window)
+            self.wait_window_focused(window=window)
+
+            display = self.get_display()
+            for key_input in key_inputs:
+                keycode = key_input.keycode(display=display)
+                LOGGER.debug(
+                    "Sending Key Input: %s %s (%s)",
+                    key_input.event_type,
+                    key_input.key,
+                    keycode,
                 )
-                sleep(delay)
+                with self.display_sync(sync=sync):
+                    fake_input(
+                        detail=keycode,
+                        event_type=key_input.event_type,
+                        root=window,
+                        self=display,
+                    )
+                    sleep(delay)
+        finally:
+            if switch_needed and desktop_original is not None:
+                self.set_desktop_active(desktop=desktop_original)
+                self.wait_desktop_active(desktop=desktop_original)
 
     def _set_property(
         self,
@@ -1077,6 +1134,71 @@ class XSession:
         return XSession._retry(checker=window_is_active, delay=delay, retry=retry)
 
     @window_type_safety
+    def wait_window_desktop(
+        self,
+        *,
+        delay: int = 1,
+        desktop: int,
+        retry: int = 3,
+        window: Union[int, Window],
+    ) -> bool:
+        """Waits for a window to be assigned to a desktop."""
+
+        def window_has_desktop(attempt: int):
+            LOGGER.debug(
+                "Waiting for window desktop (try: %d): %s -> %d",
+                attempt,
+                window_id,
+                desktop,
+            )
+            desktop_window = self.get_window_desktop(window=window)
+            if desktop == desktop_window:
+                LOGGER.debug("Window desktop is assigned.")
+                return True
+            return False
+
+        window_id = self._get_window_id(window=window)
+        return XSession._retry(checker=window_has_desktop, delay=delay, retry=retry)
+
+    @window_type_safety
+    def wait_window_dimensions(
+        self,
+        *,
+        delay: int = 1,
+        height: int,
+        retry: int = 3,
+        width: int,
+        window: Union[int, Window],
+    ) -> bool:
+        """Waits for dimensions within the window's resize increment tolerances."""
+
+        def window_has_dimensions(attempt: int):
+            LOGGER.debug(
+                "Waiting for window dimensions (try: %d): %s -> %dx%d",
+                attempt,
+                window_id,
+                width,
+                height,
+            )
+            dimensions_window = self.get_window_dimensions(window=window)
+            variance = self._get_window_dimensions_variance(window=window)
+            LOGGER.debug(
+                "Actual: %s; acceptable variance: %s", dimensions_window, variance
+            )
+            if dimensions_window is not None and all(
+                abs(actual - expected) <= tolerance
+                for actual, expected, tolerance in zip(
+                    dimensions_window, [width, height], variance
+                )
+            ):
+                LOGGER.debug("Window dimensions are assigned.")
+                return True
+            return False
+
+        window_id = self._get_window_id(window=window)
+        return XSession._retry(checker=window_has_dimensions, delay=delay, retry=retry)
+
+    @window_type_safety
     def wait_window_focused(
         self, *, delay: int = 1, retry: int = 3, window: Union[int, Window]
     ) -> bool:
@@ -1094,6 +1216,44 @@ class XSession:
 
         window_id = self._get_window_id(window=window)
         return XSession._retry(checker=window_is_focused, delay=delay, retry=retry)
+
+    @window_type_safety
+    def wait_window_position(
+        self,
+        *,
+        delay: int = 1,
+        position_x: int,
+        position_y: int,
+        retry: int = 3,
+        window: Union[int, Window],
+    ) -> bool:
+        """Waits for a position within the window's frame extent tolerances."""
+
+        def window_has_position(attempt: int):
+            LOGGER.debug(
+                "Waiting for window position (try: %d): %s -> %d,%d",
+                attempt,
+                window_id,
+                position_x,
+                position_y,
+            )
+            position_window = self.get_window_position(window=window)
+            variance = self._get_window_position_variance(window=window)
+            LOGGER.debug(
+                "Actual: %s; acceptable variance: %s", position_window, variance
+            )
+            if position_window is not None and all(
+                abs(actual - expected) <= tolerance
+                for actual, expected, tolerance in zip(
+                    position_window, [position_x, position_y], variance
+                )
+            ):
+                LOGGER.debug("Window position is assigned.")
+                return True
+            return False
+
+        window_id = self._get_window_id(window=window)
+        return XSession._retry(checker=window_has_position, delay=delay, retry=retry)
 
     @window_type_safety
     def wait_window_visible(

@@ -495,11 +495,13 @@ class XSessionp(XSession):
         """Positions a window from a given configuration."""
         if self.key_enabled(key="desktop", window=window):
             self.set_window_desktop(desktop=window["desktop"], window=window["id"])
+            self.wait_window_desktop(desktop=window["desktop"], window=window["id"])
         if self.key_enabled(key="dimensions", window=window):
             width, height = map(
                 int, re.split(pattern=r"x|,", string=window["dimensions"])
             )
             self.set_window_dimensions(height=height, width=width, window=window["id"])
+            self.wait_window_dimensions(height=height, width=width, window=window["id"])
         if self.key_enabled(key="position", window=window):
             position_x, position_y = map(
                 int, re.split(pattern=r"x|,", string=window["position"])
@@ -507,6 +509,7 @@ class XSessionp(XSession):
             self.set_window_position(
                 position_x=position_x, position_y=position_y, window=window["id"]
             )
+            self.wait_window_position(position_x=position_x, position_y=position_y, window=window["id"])
         if self.key_enabled(key="tile", window=window):
             snapped = False
             if self.key_enabled(key="snapped", window=window):

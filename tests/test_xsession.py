@@ -802,7 +802,16 @@ def test_set_window_state(window_id: int, xsession: XSession):
 # TODO: def test_wait_window_active (xsessionp: XSessionp):
 
 
+# TODO: def test_wait_window_desktop (xsessionp: XSessionp):
+
+
+# TODO: def test_wait_window_dimensions (xsessionp: XSessionp):
+
+
 # TODO: def test_wait_window_focused (xsessionp: XSessionp):
+
+
+# TODO: def test_wait_window_position (xsessionp: XSessionp):
 
 
 # TODO: def test_wait_window_visible (xsessionp: XSessionp):
